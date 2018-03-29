@@ -1,4 +1,4 @@
 .nb*
-.build*
+build/*
 *.sw*
 
