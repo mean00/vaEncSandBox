@@ -6,6 +6,9 @@ MESSAGE("")
 
 SET(ADM_PROJECT vaEnc)
 #
+ADD_DEFINITIONS("-g")
+SET(CMAKE_BUILD_TYPE Debug)
+#
 #
 SET(PLUGINS TRUE)
 SET(DO_COMMON TRUE)
@@ -73,7 +76,8 @@ INCLUDE(ve_plugin)
 include(admConfigSummary)
 include(admCheckLibVA)
 checkLibVA()
-ADD_VIDEO_ENCODER(ADM_ve_libva  ADM_libvaEncoder.cpp  libvaencPlugin.cpp)
+include_directories(${ADM_HEADER_DIR}/ADM_coreLibVA)        
+ADD_VIDEO_ENCODER(ADM_ve_libva  ADM_libvaEncoder.cpp  libvaencPlugin.cpp ADM_coreLibVaBuffer.cpp)
 
 TARGET_LINK_LIBRARIES(ADM_ve_libva ADM_coreLibVA6 va)
 INIT_VIDEO_ENCODER(ADM_ve_libva)

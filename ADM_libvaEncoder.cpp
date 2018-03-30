@@ -50,53 +50,20 @@
 #include "ADM_libvaEncoder.h"
 #include "va/va.h"
 #include "va/va_enc_h264.h"
+#include "ADM_coreLibVaBuffer.h"
+#include "vaDefines.h"
 
-#define FRAME_P 0
-#define FRAME_B 1
-#define FRAME_I 2
-#define FRAME_IDR 7
-
-
-
-#define NAL_REF_IDC_NONE        0
-#define NAL_REF_IDC_LOW         1
-#define NAL_REF_IDC_MEDIUM      2
-#define NAL_REF_IDC_HIGH        3
-
-#define NAL_NON_IDR             1
-#define NAL_IDR                 5
-#define NAL_SPS                 7
-#define NAL_PPS                 8
-#define NAL_SEI			6
-
-#define SLICE_TYPE_P            0
-#define SLICE_TYPE_B            1
-#define SLICE_TYPE_I            2
-#define IS_P_SLICE(type) (SLICE_TYPE_P == (type))
-#define IS_B_SLICE(type) (SLICE_TYPE_B == (type))
-#define IS_I_SLICE(type) (SLICE_TYPE_I == (type))
-
-
-#define ENTROPY_MODE_CAVLC      0
-#define ENTROPY_MODE_CABAC      1
-
-#define PROFILE_IDC_BASELINE    66
-#define PROFILE_IDC_MAIN        77
-#define PROFILE_IDC_HIGH        100
-   
-#define BITSTREAM_ALLOCATE_STEPPING     4096
-
-#define SURFACE_NUM 16 /* 16 surfaces for source YUV */
-#define SURFACE_NUM 16 /* 16 surfaces for reference */
-
+// setup once
 static  VADisplay va_dpy;
 static  VAProfile h264_profile ;
 static  VAConfigAttrib attrib[VAConfigAttribTypeMax];
 static  VAConfigAttrib config_attrib[VAConfigAttribTypeMax];
 static  int config_attrib_num = 0, enc_packed_header_idx;
-static  VASurfaceID src_surface[SURFACE_NUM];
-static  VABufferID  coded_buf[SURFACE_NUM];
-static  VASurfaceID ref_surface[SURFACE_NUM];
+static  int constraint_set_flag = 0;
+
+// configuration
+
+
 static  VAConfigID config_id;
 static  VAContextID context_id;
 static  VAEncSequenceParameterBufferH264 seq_param;
@@ -104,20 +71,21 @@ static  VAEncPictureParameterBufferH264 pic_param;
 static  VAEncSliceParameterBufferH264 slice_param;
 static  VAPictureH264 CurrentCurrPic;
 static  VAPictureH264 ReferenceFrames[16], RefPicList0_P[32], RefPicList0_B[32], RefPicList1_B[32];
-
-static  unsigned int MaxFrameNum = (2<<16);
+//--
+static  ADM_vaSurface *vaSurface[VA_ENC_NB_SURFACE];
+static  ADM_vaSurface *vaRefSurface[VA_ENC_NB_SURFACE];
+static  ADM_vaEncodingBuffers *vaEncodingBuffers[VA_ENC_NB_SURFACE];
+//--
 static  unsigned int MaxPicOrderCntLsb = (2<<8);
 static  unsigned int Log2MaxFrameNum = 16;
 static  unsigned int Log2MaxPicOrderCntLsb = 8;
 
 static  unsigned int num_ref_frames = 2;
 static  unsigned int numShortTerm = 0;
-static  int constraint_set_flag = 0;
 static  int h264_packedheader = 0; /* support pack header? */
 static  int h264_maxref = (1<<16|1);
 static  int h264_entropy_mode = 1; /* cabac */
 
-static  int srcyuv_fourcc = VA_FOURCC_NV12;
 
 static  int frame_width = 176;
 static  int frame_height = 144;
@@ -125,7 +93,6 @@ static  int frame_width_mbaligned;
 static  int frame_height_mbaligned;
 static  int frame_rate = 30;
 static  unsigned int frame_count = 60;
-static  unsigned int frame_coded = 0;
 static  unsigned int frame_bitrate = 0;
 static  unsigned int frame_slices = 1;
 static  double frame_size = 0;
@@ -135,14 +102,6 @@ static  int intra_period = 30;
 static  int intra_idr_period = 60;
 static  int ip_period = 1;
 static  int rc_mode = VA_RC_CQP;
-static  int rc_default_modes[] = {
-    VA_RC_VBR,
-    VA_RC_CQP,
-    VA_RC_VBR_CONSTRAINED,
-    VA_RC_CBR,
-    VA_RC_VCM,
-    VA_RC_NONE,
-};
 static  unsigned long long current_frame_encoding = 0;
 static  unsigned long long current_frame_display = 0;
 static  unsigned long long current_IDR_display = 0;
@@ -156,33 +115,15 @@ static  int misc_priv_value = 0;
 #define MIN(a, b) ((a)>(b)?(b):(a))
 #define MAX(a, b) ((a)>(b)?(a):(b))
 
-/* thread to save coded data/upload source YUV */
-struct storage_task_t {
-    void *next;
-    unsigned long long display_order;
-    unsigned long long encode_order;
-};
-static  struct storage_task_t *storage_task_header = NULL, *storage_task_tail = NULL;
+
 #define SRC_SURFACE_IN_ENCODING 0
 #define SRC_SURFACE_IN_STORAGE  1
 static  int srcsurface_status[SURFACE_NUM];
 static  int encode_syncmode = 1; // not mt
-static  pthread_mutex_t encode_mutex = PTHREAD_MUTEX_INITIALIZER;
-static  pthread_cond_t  encode_cond = PTHREAD_COND_INITIALIZER;
-static  pthread_t encode_thread;
+
     
-/* for performance profiling */
-static unsigned int UploadPictureTicks=0;
-static unsigned int BeginPictureTicks=0;
-static unsigned int RenderPictureTicks=0;
-static unsigned int EndPictureTicks=0;
-static unsigned int SyncPictureTicks=0;
-static unsigned int SavePictureTicks=0;
-static unsigned int TotalTicks=0;
 //----
 static int init_va(void);
-static int setup_encode();
-static int render_sequence(void);
 static int render_packedsequence(void);
 static int render_packedpicture(void);
 static void render_packedsei(void);
@@ -190,8 +131,7 @@ static int render_picture(void);
 static int render_slice(void);
 static int update_ReferenceFrames(void);
 static int save_codeddata(unsigned long long display_order, unsigned long long encode_order);
-static int load_surface(VASurfaceID surface_id, unsigned long long display_order);
-static int load_surface_adm(ADMImage *img,VASurfaceID surface_id);
+
 //---
 #define CHECK_VASTATUS(va_status,func)                                  \
     if (va_status != VA_STATUS_SUCCESS) {                               \
@@ -199,7 +139,7 @@ static int load_surface_adm(ADMImage *img,VASurfaceID surface_id);
         exit(1);                                                        \
     }
 
-#include "loadsurface.h"
+
 #include "vaBs.h"
 #include "vaMisc.h"
 
@@ -227,38 +167,22 @@ ADM_libvaEncoder::ADM_libvaEncoder(ADM_coreVideoFilter *src,bool globalHeader) :
 bool         ADM_libvaEncoder::setup(void)
 {
     ADM_info("[LibVAEncoder] Setting up.\n");
-    int width=getWidth();
-    int height=getHeight();
-    
-    frame_width = width;
-    frame_height = height;
     
 
-    frame_width_mbaligned = (frame_width + 15) & (~15);
-    frame_height_mbaligned = (frame_height + 15) & (~15);
+    frame_width_mbaligned = (getWidth() + 15) & (~15);
+    frame_height_mbaligned = (getHeight() + 15) & (~15);
     if (frame_width != frame_width_mbaligned ||     frame_height != frame_height_mbaligned) 
     {
         ADM_warning("Source frame is %dx%d and will code clip to %dx%d with crop\n",
-               frame_width, frame_height,
+               getWidth(), getHeight(),
                frame_width_mbaligned, frame_height_mbaligned
                );
     }
     //
-    int er=init_va();
-    if(er)
-    {
-        ADM_warning("init_va failed : %d\n",er);
-        return false;
-    }
-    er=setup_encode();
-    if(er)
-    {
-        ADM_warning("setup encode failed : %d\n",er);
-        return false;
-    }
+  
     
      /* ready for encoding */
-    memset(srcsurface_status, SRC_SURFACE_IN_ENCODING, sizeof(srcsurface_status));
+    
     
     memset(&seq_param, 0, sizeof(seq_param));
     memset(&pic_param, 0, sizeof(pic_param));
@@ -268,22 +192,63 @@ bool         ADM_libvaEncoder::setup(void)
 
     for(int i=0;i<VA_ENC_NB_SURFACE;i++)
     {
-        vaSurface[i]=ADM_vaSurface::allocateWithSurface(width,height);
+        vaSurface[i]=ADM_vaSurface::allocateWithSurface(getWidth(),getHeight());
         if(!vaSurface[i]) 
         {
             ADM_warning("Cannot allocate surface\n");
             return false;
         }
+        
+        vaRefSurface[i]=ADM_vaSurface::allocateWithSurface(getWidth(),getHeight());
+        if(!vaRefSurface[i]) 
+        {
+            ADM_warning("Cannot allocate ref surface\n");
+            return false;
+        }
     }
-    context=new ADM_vaEncodingContext();
-    if(!context->init(width,height,VA_ENC_NB_SURFACE,vaSurface))
+    
+    int er=init_va();
+    if(er)
     {
-        ADM_warning("Cannot initialize vaEncoder context\n");
+        ADM_warning("init_va failed : %d\n",er);
         return false;
     }
-    encodingBuffer=new ADM_vaEncodingBuffer(context,(width*height*400)/256);
-    ADM_info("[LibVAEncoder] Setup done.\n");
     
+    VAStatus va_status;
+    VASurfaceID *tmp_surfaceid;
+    int  i;
+    
+    va_status = vaCreateConfig(va_dpy, h264_profile, VAEntrypointEncSlice,
+            &config_attrib[0], config_attrib_num, &config_id);
+    CHECK_VASTATUS(va_status, "vaCreateConfig");
+
+
+    tmp_surfaceid = (VASurfaceID *)alloca(2 * SURFACE_NUM* sizeof(VASurfaceID));
+    for(int i=0;i<SURFACE_NUM;i++)
+    {
+        tmp_surfaceid[i]=vaSurface[i]->surface;
+        tmp_surfaceid[SURFACE_NUM+i]=vaRefSurface[i]->surface;
+    }
+    
+    /* Create a context for this encode pipe */
+    va_status = vaCreateContext(va_dpy, config_id,
+                                frame_width_mbaligned, frame_height_mbaligned,
+                                VA_PROGRESSIVE,
+                                tmp_surfaceid, 2 * SURFACE_NUM,
+                                &context_id);
+    CHECK_VASTATUS(va_status, "vaCreateContext");    
+
+    int codedbuf_size = (frame_width_mbaligned * frame_height_mbaligned * 400) / (16*16);
+
+    for (i = 0; i < SURFACE_NUM; i++) 
+    {
+        vaEncodingBuffers[i]= ADM_vaEncodingBuffers::allocate(context_id,codedbuf_size);
+        if(!vaEncodingBuffers[i])
+        {
+            ADM_warning("Cannot create encoding buffer %d\n",i);
+            return -1;
+        }
+    }
     return true;
 }
 /** 
@@ -299,16 +264,26 @@ ADM_libvaEncoder::~ADM_libvaEncoder()
             delete vaSurface[i];
             vaSurface[i]=NULL;
         }
+        if(vaRefSurface[i])
+        {
+            delete vaRefSurface[i];
+            vaRefSurface[i]=NULL;
+        }
+        if( vaEncodingBuffers[i]  )
+        {
+            delete vaEncodingBuffers[i];
+            vaEncodingBuffers[i]=NULL;
+        }
     }
-    if(context)
+    if(context_id!=VA_INVALID)
     {
-        delete context;
-        context=NULL;
+        vaDestroyContext(admLibVA::getDisplay(),context_id);
+        context_id=VA_INVALID;
     }
-    if(encodingBuffer)
+    if(config_id!=VA_INVALID)
     {
-        delete encodingBuffer;
-        encodingBuffer=NULL;
+        vaDestroyConfig(admLibVA::getDisplay(),config_id);
+        config_id=VA_INVALID;
     }
 }
 
@@ -325,10 +300,11 @@ bool         ADM_libvaEncoder::encode (ADMBitstream * out)
         ADM_warning("[LIBVA] Cannot get next image\n");
         return false;
     }
-   load_surface_adm(image,src_surface[current_frame_encoding%SURFACE_NUM]);
-    
-    //---
-    
+    if(!vaSurface[current_frame_encoding%SURFACE_NUM]->fromAdmImage(image))
+    {
+        ADM_warning("Failed to upload image to vaSurface\n");
+        return false;
+    }
 
     unsigned int i, tmp;
     VAStatus va_status;
@@ -344,14 +320,8 @@ bool         ADM_libvaEncoder::encode (ADMBitstream * out)
         current_IDR_display = current_frame_display;
     }
     int current_slot= (current_frame_display % SURFACE_NUM);
-    /* check if the source frame is ready */
-    while (srcsurface_status[current_slot] != SRC_SURFACE_IN_ENCODING) 
-    {
-        usleep(1);
-    }
 
-
-    va_status = vaBeginPicture(va_dpy, context_id, src_surface[current_slot]);
+    va_status = vaBeginPicture(va_dpy, context_id, vaSurface[current_slot]->surface);
     CHECK_VASTATUS(va_status,"vaBeginPicture");
     if (current_frame_type == FRAME_IDR) 
     {
@@ -373,40 +343,17 @@ bool         ADM_libvaEncoder::encode (ADMBitstream * out)
     //--    
     int display_order=current_frame_display;
     unsigned long long encode_order=current_frame_encoding;
-    va_status = vaSyncSurface(va_dpy, src_surface[display_order % SURFACE_NUM]);
+    va_status = vaSyncSurface(va_dpy, vaSurface[display_order % SURFACE_NUM]->surface);
     CHECK_VASTATUS(va_status,"vaSyncSurface");
-    //save_codeddata(display_order, encode_order);
-
-    VACodedBufferSegment *buf_list = NULL;    
-    unsigned int coded_size = 0;
-    int len=0;
-    uint8_t *data=out->data;
-
-    va_status = vaMapBuffer(va_dpy,coded_buf[display_order % SURFACE_NUM],(void **)(&buf_list));
-    CHECK_VASTATUS(va_status,"vaMapBuffer");
-    while (buf_list != NULL) 
-    {
-        int sz=buf_list->size;
-        memcpy(data,buf_list->buf,sz);
-        data+=sz;
-        len+=sz;
-        buf_list = (VACodedBufferSegment *) buf_list->next;
-    }
-    vaUnmapBuffer(va_dpy,coded_buf[display_order % SURFACE_NUM]);
+    
+    out->len=vaEncodingBuffers[display_order % SURFACE_NUM]->read(out->data, out->bufferSize);
+    ADM_assert(out->len>=0);
     
     /* reload a new frame data */
-        
-
-    pthread_mutex_lock(&encode_mutex);
-    srcsurface_status[display_order % SURFACE_NUM] = SRC_SURFACE_IN_ENCODING;
-    pthread_mutex_unlock(&encode_mutex);
-    //--
-  
-
+    
     update_ReferenceFrames();        
     current_frame_encoding++;
 
-    out->len=len;
     out->pts=out->dts=ADM_NO_PTS; //image->Pts;
     out->flags=AVI_KEY_FRAME;
     ADM_info("[LibVAEncoder] done, size=%d.\n",out->len);
@@ -592,90 +539,7 @@ int init_va(void)
     return 0;
 }
 
-int setup_encode()
-{
-    VAStatus va_status;
-    VASurfaceID *tmp_surfaceid;
-    int codedbuf_size, i;
-    
-    va_status = vaCreateConfig(va_dpy, h264_profile, VAEntrypointEncSlice,
-            &config_attrib[0], config_attrib_num, &config_id);
-    CHECK_VASTATUS(va_status, "vaCreateConfig");
-
-    /* create source surfaces */
-    va_status = vaCreateSurfaces(va_dpy,
-                                 VA_RT_FORMAT_YUV420, frame_width_mbaligned, frame_height_mbaligned,
-                                 &src_surface[0], SURFACE_NUM,
-                                 NULL, 0);
-    CHECK_VASTATUS(va_status, "vaCreateSurfaces");
-
-    /* create reference surfaces */
-    va_status = vaCreateSurfaces(
-        va_dpy,
-        VA_RT_FORMAT_YUV420, frame_width_mbaligned, frame_height_mbaligned,
-        &ref_surface[0], SURFACE_NUM,
-        NULL, 0
-        );
-    CHECK_VASTATUS(va_status, "vaCreateSurfaces");
-
-    tmp_surfaceid = (VASurfaceID *)calloc(2 * SURFACE_NUM, sizeof(VASurfaceID));
-    memcpy(tmp_surfaceid, src_surface, SURFACE_NUM * sizeof(VASurfaceID));
-    memcpy(tmp_surfaceid + SURFACE_NUM, ref_surface, SURFACE_NUM * sizeof(VASurfaceID));
-    
-    /* Create a context for this encode pipe */
-    va_status = vaCreateContext(va_dpy, config_id,
-                                frame_width_mbaligned, frame_height_mbaligned,
-                                VA_PROGRESSIVE,
-                                tmp_surfaceid, 2 * SURFACE_NUM,
-                                &context_id);
-    CHECK_VASTATUS(va_status, "vaCreateContext");
-    free(tmp_surfaceid);
-
-    codedbuf_size = (frame_width_mbaligned * frame_height_mbaligned * 400) / (16*16);
-
-    for (i = 0; i < SURFACE_NUM; i++) {
-        /* create coded buffer once for all
-         * other VA buffers which won't be used again after vaRenderPicture.
-         * so APP can always vaCreateBuffer for every frame
-         * but coded buffer need to be mapped and accessed after vaRenderPicture/vaEndPicture
-         * so VA won't maintain the coded buffer
-         */
-        va_status = vaCreateBuffer(va_dpy,context_id,VAEncCodedBufferType,
-                codedbuf_size, 1, NULL, &coded_buf[i]);
-        CHECK_VASTATUS(va_status,"vaCreateBuffer");
-    }
-    
-    return 0;
-}
 
 #include "vaRender.h"
 
-
-
-static int load_surface_adm(ADMImage *img,VASurfaceID surface_id)
-{
-    
-    /* allow encoding more than srcyuv_frames */    
-    upload_surface_yuv(va_dpy, surface_id,
-                       VA_FOURCC_YV12, img->GetWidth(PLANAR_Y),img->GetHeight(PLANAR_Y),
-                       img->GetReadPtr(PLANAR_Y),img->GetReadPtr(PLANAR_U),img->GetReadPtr(PLANAR_V));
-    return 0;
-}
-
-
-static int release_encode()
-{
-    int i;
-    
-    vaDestroySurfaces(va_dpy,&src_surface[0],SURFACE_NUM);
-    vaDestroySurfaces(va_dpy,&ref_surface[0],SURFACE_NUM);
-
-    for (i = 0; i < SURFACE_NUM; i++)
-        vaDestroyBuffer(va_dpy,coded_buf[i]);
-    
-    vaDestroyContext(va_dpy,context_id);
-    vaDestroyConfig(va_dpy,config_id);
-
-    return 0;
-}
-
+// EOF

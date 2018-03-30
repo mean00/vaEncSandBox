@@ -19,7 +19,7 @@
 #include "ADM_coreVideoEncoder.h"
 #include "ADM_coreLibVA/ADM_coreLibVA.h"
 
-#define VA_ENC_NB_SURFACE 1 // ???
+#define VA_ENC_NB_SURFACE 16
 /**
         \class ADM_libvaEncoder
         \brief Dummy encoder that does nothing
@@ -28,10 +28,10 @@
 class ADM_libvaEncoder : public ADM_coreVideoEncoder
 {
 protected:
-               int plane;
-               ADM_vaSurface            *vaSurface[VA_ENC_NB_SURFACE];
+               int plane;               
                ADM_vaEncodingContext    *context;
                ADM_vaEncodingBuffer     *encodingBuffer;
+               int                      render_sequence(void);
 public:
 
                             ADM_libvaEncoder(ADM_coreVideoFilter *src,bool globalHeader);

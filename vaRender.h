@@ -79,9 +79,6 @@ static int update_ReferenceFrames(void)
     
     if (current_frame_type != FRAME_B)
         current_frame_num++;
-    if (current_frame_num > MaxFrameNum)
-        current_frame_num = 0;
-    
     return 0;
 }
 
@@ -109,7 +106,7 @@ static int update_RefPicList(void)
 }
 
 
-int render_sequence(void)
+int ADM_libvaEncoder::render_sequence(void)
 {
     VABufferID seq_param_buf, rc_param_buf, misc_param_tmpbuf, render_id[2];
     VAStatus va_status;
@@ -139,9 +136,9 @@ int render_sequence(void)
         frame_height != frame_height_mbaligned) {
         seq_param.frame_cropping_flag = 1;
         seq_param.frame_crop_left_offset = 0;
-        seq_param.frame_crop_right_offset = (frame_width_mbaligned - frame_width)/2;
+        seq_param.frame_crop_right_offset = (frame_width_mbaligned - getWidth())/2;
         seq_param.frame_crop_top_offset = 0;
-        seq_param.frame_crop_bottom_offset = (frame_height_mbaligned - frame_height)/2;
+        seq_param.frame_crop_bottom_offset = (frame_height_mbaligned - getHeight())/2;
     }
     
     va_status = vaCreateBuffer(va_dpy, context_id,
@@ -228,7 +225,7 @@ static int render_picture(void)
     VAStatus va_status;
     int i = 0;
     int current_slot= (current_frame_display % SURFACE_NUM);
-    pic_param.CurrPic.picture_id = ref_surface[current_slot];
+    pic_param.CurrPic.picture_id = vaRefSurface[current_slot]->surface;
     pic_param.CurrPic.frame_idx = current_frame_num;
     pic_param.CurrPic.flags = 0;
     pic_param.CurrPic.TopFieldOrderCnt = calc_poc((current_frame_display - current_IDR_display) % MaxPicOrderCntLsb);
@@ -257,7 +254,7 @@ static int render_picture(void)
     pic_param.pic_fields.bits.entropy_coding_mode_flag = h264_entropy_mode;
     pic_param.pic_fields.bits.deblocking_filter_control_present_flag = 1;
     pic_param.frame_num = current_frame_num;
-    pic_param.coded_buf = coded_buf[current_slot];
+    pic_param.coded_buf = vaEncodingBuffers[current_slot]->getId();
     pic_param.last_picture = (current_frame_encoding == frame_count);
     pic_param.pic_init_qp = initial_qp;
 
