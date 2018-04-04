@@ -106,7 +106,7 @@ static int update_RefPicList(void)
 }
 
 
-int ADM_libvaEncoder::render_sequence(void)
+int render_sequence(void)
 {
     VABufferID seq_param_buf, rc_param_buf, misc_param_tmpbuf, render_id[2];
     VAStatus va_status;
@@ -131,7 +131,8 @@ int ADM_libvaEncoder::render_sequence(void)
     seq_param.seq_fields.bits.frame_mbs_only_flag = 1;
     seq_param.seq_fields.bits.chroma_format_idc = 1;
     seq_param.seq_fields.bits.direct_8x8_inference_flag = 1;
-    
+#warning FIXME    
+#if 0    
     if (frame_width != frame_width_mbaligned ||
         frame_height != frame_height_mbaligned) {
         seq_param.frame_cropping_flag = 1;
@@ -140,19 +141,19 @@ int ADM_libvaEncoder::render_sequence(void)
         seq_param.frame_crop_top_offset = 0;
         seq_param.frame_crop_bottom_offset = (frame_height_mbaligned - getHeight())/2;
     }
-    
-    va_status = vaCreateBuffer(va_dpy, context_id,
+#endif    
+    va_status = vaCreateBuffer(admLibVA::getDisplay(), context_id,
                                VAEncSequenceParameterBufferType,
                                sizeof(seq_param),1,&seq_param,&seq_param_buf);
     CHECK_VASTATUS(va_status,"vaCreateBuffer");
     
-    va_status = vaCreateBuffer(va_dpy, context_id,
+    va_status = vaCreateBuffer(admLibVA::getDisplay(), context_id,
                                VAEncMiscParameterBufferType,
                                sizeof(VAEncMiscParameterBuffer) + sizeof(VAEncMiscParameterRateControl),
                                1,NULL,&rc_param_buf);
     CHECK_VASTATUS(va_status,"vaCreateBuffer");
     
-    vaMapBuffer(va_dpy, rc_param_buf,(void **)&misc_param);
+    vaMapBuffer(admLibVA::getDisplay(), rc_param_buf,(void **)&misc_param);
     misc_param->type = VAEncMiscParameterTypeRateControl;
     misc_rate_ctrl = (VAEncMiscParameterRateControl *)misc_param->data;
     memset(misc_rate_ctrl, 0, sizeof(*misc_rate_ctrl));
@@ -162,28 +163,28 @@ int ADM_libvaEncoder::render_sequence(void)
     misc_rate_ctrl->initial_qp = initial_qp;
     misc_rate_ctrl->min_qp = minimal_qp;
     misc_rate_ctrl->basic_unit_size = 0;
-    vaUnmapBuffer(va_dpy, rc_param_buf);
+    vaUnmapBuffer(admLibVA::getDisplay(), rc_param_buf);
 
     render_id[0] = seq_param_buf;
     render_id[1] = rc_param_buf;
     
-    va_status = vaRenderPicture(va_dpy,context_id, &render_id[0], 2);
+    va_status = vaRenderPicture(admLibVA::getDisplay(),context_id, &render_id[0], 2);
     CHECK_VASTATUS(va_status,"vaRenderPicture");;
 
     if (misc_priv_type != 0) {
-        va_status = vaCreateBuffer(va_dpy, context_id,
+        va_status = vaCreateBuffer(admLibVA::getDisplay(), context_id,
                                    VAEncMiscParameterBufferType,
                                    sizeof(VAEncMiscParameterBuffer),
                                    1, NULL, &misc_param_tmpbuf);
         CHECK_VASTATUS(va_status,"vaCreateBuffer");
-        vaMapBuffer(va_dpy, misc_param_tmpbuf,(void **)&misc_param_tmp);
+        vaMapBuffer(admLibVA::getDisplay(), misc_param_tmpbuf,(void **)&misc_param_tmp);
         misc_param_tmp->type = (VAEncMiscParameterType)misc_priv_type;
         misc_param_tmp->data[0] = misc_priv_value;
-        vaUnmapBuffer(va_dpy, misc_param_tmpbuf);
+        vaUnmapBuffer(admLibVA::getDisplay(), misc_param_tmpbuf);
     
-        va_status = vaRenderPicture(va_dpy,context_id, &misc_param_tmpbuf, 1);
+        va_status = vaRenderPicture(admLibVA::getDisplay(),context_id, &misc_param_tmpbuf, 1);
     }
-    
+
     return 0;
 }
 
@@ -258,11 +259,11 @@ static int render_picture(void)
     pic_param.last_picture = (current_frame_encoding == frame_count);
     pic_param.pic_init_qp = initial_qp;
 
-    va_status = vaCreateBuffer(va_dpy, context_id,VAEncPictureParameterBufferType,
+    va_status = vaCreateBuffer(admLibVA::getDisplay(), context_id,VAEncPictureParameterBufferType,
                                sizeof(pic_param),1,&pic_param, &pic_param_buf);
     CHECK_VASTATUS(va_status,"vaCreateBuffer");;
 
-    va_status = vaRenderPicture(va_dpy,context_id, &pic_param_buf, 1);
+    va_status = vaRenderPicture(admLibVA::getDisplay(),context_id, &pic_param_buf, 1);
     CHECK_VASTATUS(va_status,"vaRenderPicture");
 
     return 0;
@@ -282,14 +283,14 @@ int render_packedsequence(void)
     
     packedheader_param_buffer.bit_length = length_in_bits; /*length_in_bits*/
     packedheader_param_buffer.has_emulation_bytes = 0;
-    va_status = vaCreateBuffer(va_dpy,
+    va_status = vaCreateBuffer(admLibVA::getDisplay(),
                                context_id,
                                VAEncPackedHeaderParameterBufferType,
                                sizeof(packedheader_param_buffer), 1, &packedheader_param_buffer,
                                &packedseq_para_bufid);
     CHECK_VASTATUS(va_status,"vaCreateBuffer");
 
-    va_status = vaCreateBuffer(va_dpy,
+    va_status = vaCreateBuffer(admLibVA::getDisplay(),
                                context_id,
                                VAEncPackedHeaderDataBufferType,
                                (length_in_bits + 7) / 8, 1, packedseq_buffer,
@@ -298,7 +299,7 @@ int render_packedsequence(void)
 
     render_id[0] = packedseq_para_bufid;
     render_id[1] = packedseq_data_bufid;
-    va_status = vaRenderPicture(va_dpy,context_id, render_id, 2);
+    va_status = vaRenderPicture(admLibVA::getDisplay(),context_id, render_id, 2);
     CHECK_VASTATUS(va_status,"vaRenderPicture");
 
     free(packedseq_buffer);
@@ -320,14 +321,14 @@ int render_packedpicture(void)
     packedheader_param_buffer.bit_length = length_in_bits;
     packedheader_param_buffer.has_emulation_bytes = 0;
 
-    va_status = vaCreateBuffer(va_dpy,
+    va_status = vaCreateBuffer(admLibVA::getDisplay(),
                                context_id,
                                VAEncPackedHeaderParameterBufferType,
                                sizeof(packedheader_param_buffer), 1, &packedheader_param_buffer,
                                &packedpic_para_bufid);
     CHECK_VASTATUS(va_status,"vaCreateBuffer");
 
-    va_status = vaCreateBuffer(va_dpy,
+    va_status = vaCreateBuffer(admLibVA::getDisplay(),
                                context_id,
                                VAEncPackedHeaderDataBufferType,
                                (length_in_bits + 7) / 8, 1, packedpic_buffer,
@@ -336,7 +337,7 @@ int render_packedpicture(void)
 
     render_id[0] = packedpic_para_bufid;
     render_id[1] = packedpic_data_bufid;
-    va_status = vaRenderPicture(va_dpy,context_id, render_id, 2);
+    va_status = vaRenderPicture(admLibVA::getDisplay(),context_id, render_id, 2);
     CHECK_VASTATUS(va_status,"vaRenderPicture");
 
     free(packedpic_buffer);
@@ -380,14 +381,14 @@ static void render_packedsei(void)
     packed_header_param_buffer.bit_length = length_in_bits;
     packed_header_param_buffer.has_emulation_bytes = 0;
 
-    va_status = vaCreateBuffer(va_dpy,
+    va_status = vaCreateBuffer(admLibVA::getDisplay(),
                                context_id,
                                VAEncPackedHeaderParameterBufferType,
                                sizeof(packed_header_param_buffer), 1, &packed_header_param_buffer,
                                &packed_sei_header_param_buf_id);
     CHECK_VASTATUS(va_status,"vaCreateBuffer");
 
-    va_status = vaCreateBuffer(va_dpy,
+    va_status = vaCreateBuffer(admLibVA::getDisplay(),
                                context_id,
                                VAEncPackedHeaderDataBufferType,
                                (length_in_bits + 7) / 8, 1, packed_sei_buffer,
@@ -397,7 +398,7 @@ static void render_packedsei(void)
 
     render_id[0] = packed_sei_header_param_buf_id;
     render_id[1] = packed_sei_buf_id;
-    va_status = vaRenderPicture(va_dpy,context_id, render_id, 2);
+    va_status = vaRenderPicture(admLibVA::getDisplay(),context_id, render_id, 2);
     CHECK_VASTATUS(va_status,"vaRenderPicture");
 
     
@@ -414,7 +415,7 @@ static int render_hrd(void)
     VAEncMiscParameterBuffer *misc_param;
     VAEncMiscParameterHRD *misc_hrd_param;
     
-    va_status = vaCreateBuffer(va_dpy, context_id,
+    va_status = vaCreateBuffer(admLibVA::getDisplay(), context_id,
                    VAEncMiscParameterBufferType,
                    sizeof(VAEncMiscParameterBuffer) + sizeof(VAEncMiscParameterHRD),
                    1,
@@ -422,7 +423,7 @@ static int render_hrd(void)
                    &misc_parameter_hrd_buf_id);
     CHECK_VASTATUS(va_status, "vaCreateBuffer");
 
-    vaMapBuffer(va_dpy,
+    vaMapBuffer(admLibVA::getDisplay(),
                 misc_parameter_hrd_buf_id,
                 (void **)&misc_param);
     misc_param->type = VAEncMiscParameterTypeHRD;
@@ -435,9 +436,9 @@ static int render_hrd(void)
         misc_hrd_param->initial_buffer_fullness = 0;
         misc_hrd_param->buffer_size = 0;
     }
-    vaUnmapBuffer(va_dpy, misc_parameter_hrd_buf_id);
+    vaUnmapBuffer(admLibVA::getDisplay(), misc_parameter_hrd_buf_id);
 
-    va_status = vaRenderPicture(va_dpy,context_id, &misc_parameter_hrd_buf_id, 1);
+    va_status = vaRenderPicture(admLibVA::getDisplay(),context_id, &misc_parameter_hrd_buf_id, 1);
     CHECK_VASTATUS(va_status,"vaRenderPicture");;
 
     return 0;
@@ -456,14 +457,14 @@ static void render_packedslice()
     packedheader_param_buffer.bit_length = length_in_bits;
     packedheader_param_buffer.has_emulation_bytes = 0;
 
-    va_status = vaCreateBuffer(va_dpy,
+    va_status = vaCreateBuffer(admLibVA::getDisplay(),
                                context_id,
                                VAEncPackedHeaderParameterBufferType,
                                sizeof(packedheader_param_buffer), 1, &packedheader_param_buffer,
                                &packedslice_para_bufid);
     CHECK_VASTATUS(va_status,"vaCreateBuffer");
 
-    va_status = vaCreateBuffer(va_dpy,
+    va_status = vaCreateBuffer(admLibVA::getDisplay(),
                                context_id,
                                VAEncPackedHeaderDataBufferType,
                                (length_in_bits + 7) / 8, 1, packedslice_buffer,
@@ -472,7 +473,7 @@ static void render_packedslice()
 
     render_id[0] = packedslice_para_bufid;
     render_id[1] = packedslice_data_bufid;
-    va_status = vaRenderPicture(va_dpy,context_id, render_id, 2);
+    va_status = vaRenderPicture(admLibVA::getDisplay(),context_id, render_id, 2);
     CHECK_VASTATUS(va_status,"vaRenderPicture");
 
     free(packedslice_buffer);
@@ -528,11 +529,11 @@ static int render_slice(void)
         config_attrib[enc_packed_header_idx].value & VA_ENC_PACKED_HEADER_SLICE)
         render_packedslice();
 
-    va_status = vaCreateBuffer(va_dpy,context_id,VAEncSliceParameterBufferType,
+    va_status = vaCreateBuffer(admLibVA::getDisplay(),context_id,VAEncSliceParameterBufferType,
                                sizeof(slice_param),1,&slice_param,&slice_param_buf);
     CHECK_VASTATUS(va_status,"vaCreateBuffer");;
 
-    va_status = vaRenderPicture(va_dpy,context_id, &slice_param_buf, 1);
+    va_status = vaRenderPicture(admLibVA::getDisplay(),context_id, &slice_param_buf, 1);
     CHECK_VASTATUS(va_status,"vaRenderPicture");
     
     return 0;

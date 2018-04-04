@@ -130,9 +130,9 @@ static int build_packed_slice_buffer(unsigned char **header_buffer)
 #define FRAME_I 2
 #define FRAME_IDR 7
 void encoding2display_order(
-    unsigned long long encoding_order,int intra_period,
+    uint64_t encoding_order,int intra_period,
     int intra_idr_period,int ip_period,
-    unsigned long long *displaying_order,
+    uint64_t *displaying_order,
     int *frame_type)
 {
     int encoding_order_gop = 0;

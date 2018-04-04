@@ -18,7 +18,7 @@
 #pragma once
 #include "ADM_coreVideoEncoder.h"
 #include "ADM_coreLibVA/ADM_coreLibVA.h"
-
+#include "ADM_libVaEncodingContext.h"
 #define VA_ENC_NB_SURFACE 16
 /**
         \class ADM_libvaEncoder
@@ -29,9 +29,8 @@ class ADM_libvaEncoder : public ADM_coreVideoEncoder
 {
 protected:
                int plane;               
-               ADM_vaEncodingContext    *context;
-               ADM_vaEncodingBuffer     *encodingBuffer;
                int                      render_sequence(void);
+               ADM_vaEncodingContext     *vaContext;
 public:
 
                             ADM_libvaEncoder(ADM_coreVideoFilter *src,bool globalHeader);
@@ -39,6 +38,9 @@ public:
 virtual        bool         encode (ADMBitstream * out);
 virtual const  char         *getFourcc(void) {return "H264";}
 virtual        bool         setup(void);
+
+
+
 };
 
 
