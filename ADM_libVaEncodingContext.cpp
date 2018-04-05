@@ -251,6 +251,7 @@ public:
 
         out->pts=out->dts=ADM_NO_PTS; //image->Pts;
         out->flags=AVI_KEY_FRAME;
+        return true;
 
         }
 protected:

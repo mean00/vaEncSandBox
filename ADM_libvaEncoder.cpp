@@ -150,7 +150,9 @@ bool         ADM_libvaEncoder::encode (ADMBitstream * out)
         ADM_warning("[LIBVA] Cannot get next image\n");
         return false;
     }
-    return  vaContext->encode(image,out);
+    bool r=vaContext->encode(image,out);
+    ADM_info("Encoding frame %d, result = %d, size=%d\n",fn,r,out->len);
+    return r;
 }
 
 
