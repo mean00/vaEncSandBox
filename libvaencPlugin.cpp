@@ -1,9 +1,9 @@
 /***************************************************************************
-                          \fn     yv12Plugin
-                          \brief  Plugin for YV12 dummy encoder
+                          \fn     libvaEnc_plugin
+                          \brief  Plugin to use libva hw encoder (intel mostly)
                              -------------------
 
-    copyright            : (C) 2002/2009 by mean
+    copyright            : (C) 2018 by mean
     email                : fixounet@free.fr
  ***************************************************************************/
 
