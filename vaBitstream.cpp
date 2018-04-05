@@ -1,0 +1,216 @@
+/***************************************************************************
+                          \fn     libvaEnc_plugin
+                          \brief  Plugin to use libva hw encoder (intel mostly)
+                             -------------------
+
+    copyright            : (C) 2018 by mean
+    email                : fixounet@free.fr
+ ***************************************************************************/
+
+/***************************************************************************
+ *                                                                         *
+ *   This program is free software; you can redistribute it and/or modify  *
+ *   it under the terms of the GNU General Public License as published by  *
+ *   the Free Software Foundation; either version 2 of the License, or     *
+ *   (at your option) any later version.                                   *
+ *                                                                         *
+ ***************************************************************************/
+ /***************************************************************************/
+/* Derived from libva sample code */
+/*
+ * Copyright (c) 2007-2013 Intel Corporation. All Rights Reserved.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a
+ * copy of this software and associated documentation files (the
+ * "Software"), to deal in the Software without restriction, including
+ * without limitation the rights to use, copy, modify, merge, publish,
+ * distribute, sub license, and/or sell copies of the Software, and to
+ * permit persons to whom the Software is furnished to do so, subject to
+ * the following conditions:
+ * 
+ * The above copyright notice and this permission notice (including the
+ * next paragraph) shall be included in all copies or substantial portions
+ * of the Software.
+ * 
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+ * OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+ * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT.
+ * IN NO EVENT SHALL PRECISION INSIGHT AND/OR ITS SUPPLIERS BE LIABLE FOR
+ * ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+ * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+ * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ */
+/***************************************************************************
+ *                                                                         *
+ *   This program is free software; you can redistribute it and/or modify  *
+ *   it under the terms of the GNU General Public License as published by  *
+ *   the Free Software Foundation; either version 2 of the License, or     *
+ *   (at your option) any later version.                                   *
+ *                                                                         *
+ ***************************************************************************/
+#include "ADM_default.h"
+#include "va/va.h"
+#include "vaBitstream.h"
+/***************************************************************************
+                          \fn     libvaEnc_plugin
+                          \brief  Plugin to use libva hw encoder (intel mostly)
+                             -------------------
+
+    copyright            : (C) 2018 by mean
+    email                : fixounet@free.fr
+ ***************************************************************************/
+
+/***************************************************************************
+ *                                                                         *
+ *   This program is free software; you can redistribute it and/or modify  *
+ *   it under the terms of the GNU General Public License as published by  *
+ *   the Free Software Foundation; either version 2 of the License, or     *
+ *   (at your option) any later version.                                   *
+ *                                                                         *
+ ***************************************************************************/
+ /***************************************************************************/
+/* Derived from libva sample code */
+/*
+ * Copyright (c) 2007-2013 Intel Corporation. All Rights Reserved.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a
+ * copy of this software and associated documentation files (the
+ * "Software"), to deal in the Software without restriction, including
+ * without limitation the rights to use, copy, modify, merge, publish,
+ * distribute, sub license, and/or sell copies of the Software, and to
+ * permit persons to whom the Software is furnished to do so, subject to
+ * the following conditions:
+ * 
+ * The above copyright notice and this permission notice (including the
+ * next paragraph) shall be included in all copies or substantial portions
+ * of the Software.
+ * 
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+ * OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+ * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT.
+ * IN NO EVENT SHALL PRECISION INSIGHT AND/OR ITS SUPPLIERS BE LIABLE FOR
+ * ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+ * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+ * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ */
+/***************************************************************************
+ *                                                                         *
+ *   This program is free software; you can redistribute it and/or modify  *
+ *   it under the terms of the GNU General Public License as published by  *
+ *   the Free Software Foundation; either version 2 of the License, or     *
+ *   (at your option) any later version.                                   *
+ *                                                                         *
+ ***************************************************************************/
+#define BITSTREAM_ALLOCATE_STEPPING     4096
+
+void bitstream_start(bitstream *bs)
+{
+    bs->max_size_in_dword = BITSTREAM_ALLOCATE_STEPPING;
+    bs->buffer = (unsigned int *)calloc(bs->max_size_in_dword * sizeof(int), 1);
+    bs->bit_offset = 0;
+}
+
+void bitstream_end(bitstream *bs)
+{
+    int pos = (bs->bit_offset >> 5);
+    int bit_offset = (bs->bit_offset & 0x1f);
+    int bit_left = 32 - bit_offset;
+
+    if (bit_offset) {
+        bs->buffer[pos] = va_swap32((bs->buffer[pos] << bit_left));
+    }
+}
+ 
+void bitstream_put_ui(bitstream *bs, unsigned int val, int size_in_bits)
+{
+    int pos = (bs->bit_offset >> 5);
+    int bit_offset = (bs->bit_offset & 0x1f);
+    int bit_left = 32 - bit_offset;
+
+    if (!size_in_bits)
+        return;
+
+    bs->bit_offset += size_in_bits;
+
+    if (bit_left > size_in_bits) {
+        bs->buffer[pos] = (bs->buffer[pos] << size_in_bits | val);
+    } else {
+        size_in_bits -= bit_left;
+        bs->buffer[pos] = (bs->buffer[pos] << bit_left) | (val >> size_in_bits);
+        bs->buffer[pos] = va_swap32(bs->buffer[pos]);
+
+        if (pos + 1 == bs->max_size_in_dword) {
+            bs->max_size_in_dword += BITSTREAM_ALLOCATE_STEPPING;
+            bs->buffer = (unsigned int *)realloc(bs->buffer, bs->max_size_in_dword * sizeof(unsigned int));
+        }
+
+        bs->buffer[pos + 1] = val;
+    }
+}
+
+void bitstream_put_ue(bitstream *bs, unsigned int val)
+{
+    int size_in_bits = 0;
+    int tmp_val = ++val;
+
+    while (tmp_val) {
+        tmp_val >>= 1;
+        size_in_bits++;
+    }
+
+    bitstream_put_ui(bs, 0, size_in_bits - 1); // leading zero
+    bitstream_put_ui(bs, val, size_in_bits);
+}
+
+void bitstream_put_se(bitstream *bs, int val)
+{
+    unsigned int new_val;
+
+    if (val <= 0)
+        new_val = -2 * val;
+    else
+        new_val = 2 * val - 1;
+
+    bitstream_put_ue(bs, new_val);
+}
+
+void bitstream_byte_aligning(bitstream *bs, int bit)
+{
+    int bit_offset = (bs->bit_offset & 0x7);
+    int bit_left = 8 - bit_offset;
+    int new_val;
+
+    if (!bit_offset)
+        return;
+
+    assert(bit == 0 || bit == 1);
+
+    if (bit)
+        new_val = (1 << bit_left) - 1;
+    else
+        new_val = 0;
+
+    bitstream_put_ui(bs, new_val, bit_left);
+}
+
+void rbsp_trailing_bits(bitstream *bs)
+{
+    bitstream_put_ui(bs, 1, 1);
+    bitstream_byte_aligning(bs, 0);
+}
+
+void nal_start_code_prefix(bitstream *bs)
+{
+    bitstream_put_ui(bs, 0x00000001, 32);
+}
+
+void nal_header(bitstream *bs, int nal_ref_idc, int nal_unit_type)
+{
+    bitstream_put_ui(bs, 0, 1);                /* forbidden_zero_bit: 0 */
+    bitstream_put_ui(bs, nal_ref_idc, 2);
+    bitstream_put_ui(bs, nal_unit_type, 5);
+}
+
+// EOF
+
+

@@ -1,11 +1,21 @@
 /***************************************************************************
-                          \fn ADM_VideoEncoders
-                          \brief Internal handling of video encoders
+                          \fn     libvaEnc_plugin
+                          \brief  Plugin to use libva hw encoder (intel mostly)
                              -------------------
-    
+
     copyright            : (C) 2018 by mean
     email                : fixounet@free.fr
  ***************************************************************************/
+
+/***************************************************************************
+ *                                                                         *
+ *   This program is free software; you can redistribute it and/or modify  *
+ *   it under the terms of the GNU General Public License as published by  *
+ *   the Free Software Foundation; either version 2 of the License, or     *
+ *   (at your option) any later version.                                   *
+ *                                                                         *
+ ***************************************************************************/
+ /***************************************************************************/
 /* Derived from libva sample code */
 /*
  * Copyright (c) 2007-2013 Intel Corporation. All Rights Reserved.
@@ -38,35 +48,33 @@
  *   (at your option) any later version.                                   *
  *                                                                         *
  ***************************************************************************/
-
 #pragma once
 
-
-#define CHECK_VASTATUS(va_status,func)                                  \
-    if (va_status != VA_STATUS_SUCCESS) {                               \
-        fprintf(stderr,"%s:%s (%d) failed,exit\n", __func__, func, __LINE__); \
-        exit(1);                                                        \
-    }
-
-
-#include <vector>
-class ADMImage;
-class ADM_vaSurface;
-class ADMBitstream;
-
-/**
- * 
- * @param codec
- * @param alignedWidth
- * @param alignedHeight
- * @param knownSurfaces
- * @return 
- */
-class ADM_vaEncodingContext
-{
-public:
-                ADM_vaEncodingContext() {}
-    virtual      ~ADM_vaEncodingContext() {}
-    static       ADM_vaEncodingContext *allocate(int codec, int width, int height, std::vector<ADM_vaSurface *>knownSurfaces);
-    virtual bool encode(ADMImage *in, ADMBitstream *out)=0;
+struct __bitstream {
+    unsigned int *buffer;
+    int bit_offset;
+    int max_size_in_dword;
 };
+typedef struct __bitstream bitstream;
+
+
+static unsigned int 
+va_swap32(unsigned int val)
+{
+    unsigned char *pval = (unsigned char *)&val;
+
+    return ((pval[0] << 24)     |
+            (pval[1] << 16)     |
+            (pval[2] << 8)      |
+            (pval[3] << 0));
+}
+
+void bitstream_start(bitstream *bs);
+void bitstream_end(bitstream *bs);
+void bitstream_put_ui(bitstream *bs, unsigned int val, int size_in_bits);
+void bitstream_put_ue(bitstream *bs, unsigned int val);
+void bitstream_put_se(bitstream *bs, int val);
+void bitstream_byte_aligning(bitstream *bs, int bit);
+void rbsp_trailing_bits(bitstream *bs);
+void nal_start_code_prefix(bitstream *bs);
+void nal_header(bitstream *bs, int nal_ref_idc, int nal_unit_type);

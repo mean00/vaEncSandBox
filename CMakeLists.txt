@@ -79,8 +79,10 @@ checkLibVA()
 include_directories(${ADM_HEADER_DIR}/ADM_coreLibVA)        
 ADD_VIDEO_ENCODER(ADM_ve_libva  
 				libvaencPlugin.cpp ADM_coreLibVaBuffer.cpp 
+				vaBitstream.cpp
 				ADM_libVaEncodingContext.cpp
 				ADM_libvaEncoder.cpp  
+				ADM_libVaEncodingContextH264.cpp
 					)
 
 TARGET_LINK_LIBRARIES(ADM_ve_libva ADM_coreLibVA6 va)

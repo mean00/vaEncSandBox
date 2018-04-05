@@ -83,7 +83,6 @@
 #define PROFILE_IDC_MAIN        77
 #define PROFILE_IDC_HIGH        100
    
-#define BITSTREAM_ALLOCATE_STEPPING     4096
 
 #define SURFACE_NUM 16 /* 16 surfaces for source YUV */
 
@@ -95,6 +94,3 @@ static const  int rc_default_modes[] = {
     VA_RC_VCM,
     VA_RC_NONE,
 };
-
-#define SRC_SURFACE_IN_ENCODING 0
-#define SRC_SURFACE_IN_STORAGE  1

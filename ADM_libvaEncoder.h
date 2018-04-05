@@ -19,7 +19,7 @@
 #include "ADM_coreVideoEncoder.h"
 #include "ADM_coreLibVA/ADM_coreLibVA.h"
 #include "ADM_libVaEncodingContext.h"
-#define VA_ENC_NB_SURFACE 16
+
 /**
         \class ADM_libvaEncoder
         \brief Dummy encoder that does nothing
