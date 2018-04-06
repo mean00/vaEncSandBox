@@ -103,11 +103,140 @@
  ***************************************************************************/
 #define BITSTREAM_ALLOCATE_STEPPING     4096
 
+
+static unsigned int 
+va_swap32(unsigned int val)
+{
+    unsigned char *pval = (unsigned char *)&val;
+
+    return ((pval[0] << 24)     |
+            (pval[1] << 16)     |
+            (pval[2] << 8)      |
+            (pval[3] << 0));
+}
+
+vaBitstream::vaBitstream()
+{
+    max_size_in_dword = BITSTREAM_ALLOCATE_STEPPING;
+    buffer = (unsigned int *)calloc(max_size_in_dword * sizeof(int), 1);
+    bit_offset = 0; 
+}
+vaBitstream::~vaBitstream()
+{
+    free(buffer);
+    buffer=NULL;
+}
+void vaBitstream::stop()
+{
+    int pos = (bit_offset >> 5);
+    int xbit_offset = (bit_offset & 0x1f);
+    int bit_left = 32 - xbit_offset;
+
+    if (xbit_offset) 
+    {
+        buffer[pos] = va_swap32((buffer[pos] << bit_left));
+    }
+}
+
+void vaBitstream::put_ui(unsigned int val, int size_in_bits)
+{
+    int pos = (bit_offset >> 5);
+    int xbit_offset = (bit_offset & 0x1f);
+    int bit_left = 32 - xbit_offset;
+
+    if (!size_in_bits)
+        return;
+
+    bit_offset += size_in_bits;
+
+    if (bit_left > size_in_bits) {
+        buffer[pos] = (buffer[pos] << size_in_bits | val);
+    } else {
+        size_in_bits -= bit_left;
+        buffer[pos] = (buffer[pos] << bit_left) | (val >> size_in_bits);
+        buffer[pos] = va_swap32(buffer[pos]);
+
+        if (pos + 1 == max_size_in_dword) {
+            max_size_in_dword += BITSTREAM_ALLOCATE_STEPPING;
+            buffer = (unsigned int *)realloc(buffer, max_size_in_dword * sizeof(unsigned int));
+        }
+
+        buffer[pos + 1] = val;
+    }
+}
+
+void vaBitstream::put_ue(unsigned int val)
+{
+    int size_in_bits = 0;
+    int tmp_val = ++val;
+
+    while (tmp_val) {
+        tmp_val >>= 1;
+        size_in_bits++;
+    }
+
+    put_ui( 0, size_in_bits - 1); // leading zero
+    put_ui( val, size_in_bits);
+}
+
+void vaBitstream::put_se(int val)
+{
+    unsigned int new_val;
+
+    if (val <= 0)
+        new_val = -2 * val;
+    else
+        new_val = 2 * val - 1;
+
+    put_ue(new_val);
+}
+
+void vaBitstream::byteAlign(int bit)
+{
+    int xbit_offset = (bit_offset & 0x7);
+    int bit_left = 8 - xbit_offset;
+    int new_val;
+
+    if (!xbit_offset)
+        return;
+
+    assert(bit == 0 || bit == 1);
+
+    if (bit)
+        new_val = (1 << bit_left) - 1;
+    else
+        new_val = 0;
+
+    put_ui(new_val, bit_left);
+}
+
+void vaBitstream::rbspTrailingBits()
+{
+    put_ui( 1, 1);
+    byteAlign(0);
+}
+
+void vaBitstream::startCodePrefix()
+{
+    put_ui( 0x00000001, 32);
+}
+
+void vaBitstream::nalHeader(int nal_ref_idc, int nal_unit_type)
+{
+    put_ui(0, 1);                /* forbidden_zero_bit: 0 */
+    put_ui(nal_ref_idc, 2);
+    put_ui(nal_unit_type, 5);
+}
+
+//---
+
+
+
 void bitstream_start(bitstream *bs)
 {
     bs->max_size_in_dword = BITSTREAM_ALLOCATE_STEPPING;
     bs->buffer = (unsigned int *)calloc(bs->max_size_in_dword * sizeof(int), 1);
-    bs->bit_offset = 0;
+    bs->bit_offset = 0; 
 }
 
 void bitstream_end(bitstream *bs)

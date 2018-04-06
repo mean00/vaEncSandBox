@@ -49,6 +49,29 @@
  *                                                                         *
  ***************************************************************************/
 #pragma once
+/**
+ * 
+ */
+class vaBitstream
+{
+public:
+                vaBitstream();
+                ~vaBitstream();
+        void    stop();
+        void    put_ui(unsigned int val,int size_in_bits);
+        void    put_ue(unsigned int val);
+        void    put_se(signed int val);
+        void    byteAlign(signed int bit);
+        void    rbspTrailingBits();
+        void    startCodePrefix();
+        void    nalHeader(int nal_ref_idc, int nal_unit_type);
+
+        uint8_t *getPointer() {return  (uint8_t *)buffer;}
+protected:
+    unsigned int *buffer;
+    int          bit_offset;
+    int          max_size_in_dword;
+};
 
 struct __bitstream {
     unsigned int *buffer;
@@ -58,23 +81,13 @@ struct __bitstream {
 typedef struct __bitstream bitstream;
 
 
-static unsigned int 
-va_swap32(unsigned int val)
-{
-    unsigned char *pval = (unsigned char *)&val;
-
-    return ((pval[0] << 24)     |
-            (pval[1] << 16)     |
-            (pval[2] << 8)      |
-            (pval[3] << 0));
-}
-
 void bitstream_start(bitstream *bs);
 void bitstream_end(bitstream *bs);
 void bitstream_put_ui(bitstream *bs, unsigned int val, int size_in_bits);
 void bitstream_put_ue(bitstream *bs, unsigned int val);
 void bitstream_put_se(bitstream *bs, int val);
 void bitstream_byte_aligning(bitstream *bs, int bit);
+//--
 void rbsp_trailing_bits(bitstream *bs);
 void nal_start_code_prefix(bitstream *bs);
 void nal_header(bitstream *bs, int nal_ref_idc, int nal_unit_type);

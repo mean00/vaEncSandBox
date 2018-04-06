@@ -49,9 +49,17 @@
  *                                                                         *
  ***************************************************************************/
 
+#include "ADM_default.h"
+#include "va/va.h"
+#include "va/va_enc_h264.h"
+#include "ADM_coreLibVaBuffer.h"
+#include "ADM_libVaEncodingContextH264.h"
 
-
-static void sps_rbsp(bitstream *bs)
+/**
+ * 
+ * @param bs
+ */
+ void ADM_vaEncodingContextH264::sps_rbsp(bitstream *bs)
 {
     int profile_idc = PROFILE_IDC_BASELINE;
 
@@ -148,8 +156,11 @@ static void sps_rbsp(bitstream *bs)
     rbsp_trailing_bits(bs);     /* rbsp_trailing_bits */
 }
 
-
-static void pps_rbsp(bitstream *bs)
+/**
+ * 
+ * @param bs
+ */
+void ADM_vaEncodingContextH264::pps_rbsp(bitstream *bs)
 {
     bitstream_put_ue(bs, pic_param.pic_parameter_set_id);      /* pic_parameter_set_id */
     bitstream_put_ue(bs, pic_param.seq_parameter_set_id);      /* seq_parameter_set_id */
@@ -181,8 +192,11 @@ static void pps_rbsp(bitstream *bs)
 
     rbsp_trailing_bits(bs);
 }
-
-static void slice_header(bitstream *bs)
+/**
+ * 
+ * @param bs
+ */
+void ADM_vaEncodingContextH264::slice_header(bitstream *bs)
 {
     int first_mb_in_slice = slice_param.macroblock_address;
 
@@ -276,8 +290,12 @@ static void slice_header(bitstream *bs)
         bitstream_byte_aligning(bs, 1);
     }
 }
-static int
-build_packed_pic_buffer(unsigned char **header_buffer)
+/**
+ * 
+ * @param header_buffer
+ * @return 
+ */
+int ADM_vaEncodingContextH264::build_packed_pic_buffer(unsigned char **header_buffer)
 {
     bitstream bs;
 
@@ -290,9 +308,12 @@ build_packed_pic_buffer(unsigned char **header_buffer)
     *header_buffer = (unsigned char *)bs.buffer;
     return bs.bit_offset;
 }
-
-static int
-build_packed_seq_buffer(unsigned char **header_buffer)
+/**
+ * 
+ * @param header_buffer
+ * @return 
+ */
+ int ADM_vaEncodingContextH264::build_packed_seq_buffer(unsigned char **header_buffer)
 {
     bitstream bs;
 
@@ -306,8 +327,19 @@ build_packed_seq_buffer(unsigned char **header_buffer)
     return bs.bit_offset;
 }
 
-static int 
-build_packed_sei_buffer_timing(unsigned int init_cpb_removal_length,
+/**
+ * 
+ * @param init_cpb_removal_length
+ * @param init_cpb_removal_delay
+ * @param init_cpb_removal_delay_offset
+ * @param cpb_removal_length
+ * @param cpb_removal_delay
+ * @param dpb_output_length
+ * @param dpb_output_delay
+ * @param sei_buffer
+ * @return 
+ */  
+ int ADM_vaEncodingContextH264::build_packed_sei_buffer_timing(unsigned int init_cpb_removal_length,
 				unsigned int init_cpb_removal_delay,
 				unsigned int init_cpb_removal_delay_offset,
 				unsigned int cpb_removal_length,
@@ -371,8 +403,12 @@ build_packed_sei_buffer_timing(unsigned int init_cpb_removal_length,
    
     return nal_bs.bit_offset;
 }
-
-static int build_packed_slice_buffer(unsigned char **header_buffer)
+/**
+ * 
+ * @param header_buffer
+ * @return 
+ */
+  int ADM_vaEncodingContextH264::build_packed_slice_buffer(unsigned char **header_buffer)
 {
     bitstream bs;
     int is_idr = !!pic_param.pic_fields.bits.idr_pic_flag;
@@ -402,11 +438,7 @@ static int build_packed_slice_buffer(unsigned char **header_buffer)
  * displaying_order: displaying order
  * frame_type: frame type 
  */
-void encoding2display_order(
-    uint64_t encoding_order,int intra_period,
-    int intra_idr_period,int ip_period,
-    uint64_t *displaying_order,
-    int *frame_type)
+void ADM_vaEncodingContextH264::encoding2display_order(    uint64_t encoding_order,int intra_period,    int intra_idr_period,int ip_period,    uint64_t *displaying_order,    int *frame_type)
 {
     int encoding_order_gop = 0;
 
@@ -447,3 +479,5 @@ void encoding2display_order(
 	*displaying_order = encoding_order + ip_period - 1;
     }
 }
+
+// EOF

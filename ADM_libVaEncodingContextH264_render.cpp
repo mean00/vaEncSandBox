@@ -1,3 +1,59 @@
+/***************************************************************************
+                          \fn     libvaEnc_plugin
+                          \brief  Plugin to use libva hw encoder (intel mostly)
+                             -------------------
+
+    copyright            : (C) 2018 by mean
+    email                : fixounet@free.fr
+ ***************************************************************************/
+
+/***************************************************************************
+ *                                                                         *
+ *   This program is free software; you can redistribute it and/or modify  *
+ *   it under the terms of the GNU General Public License as published by  *
+ *   the Free Software Foundation; either version 2 of the License, or     *
+ *   (at your option) any later version.                                   *
+ *                                                                         *
+ ***************************************************************************/
+ /***************************************************************************/
+/* Derived from libva sample code */
+/*
+ * Copyright (c) 2007-2013 Intel Corporation. All Rights Reserved.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a
+ * copy of this software and associated documentation files (the
+ * "Software"), to deal in the Software without restriction, including
+ * without limitation the rights to use, copy, modify, merge, publish,
+ * distribute, sub license, and/or sell copies of the Software, and to
+ * permit persons to whom the Software is furnished to do so, subject to
+ * the following conditions:
+ * 
+ * The above copyright notice and this permission notice (including the
+ * next paragraph) shall be included in all copies or substantial portions
+ * of the Software.
+ * 
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+ * OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+ * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT.
+ * IN NO EVENT SHALL PRECISION INSIGHT AND/OR ITS SUPPLIERS BE LIABLE FOR
+ * ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+ * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+ * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ */
+/***************************************************************************
+ *                                                                         *
+ *   This program is free software; you can redistribute it and/or modify  *
+ *   it under the terms of the GNU General Public License as published by  *
+ *   the Free Software Foundation; either version 2 of the License, or     *
+ *   (at your option) any later version.                                   *
+ *                                                                         *
+ ***************************************************************************/
+
+#include "ADM_default.h"
+#include "va/va.h"
+#include "va/va_enc_h264.h"
+#include "ADM_coreLibVaBuffer.h"
+#include "ADM_libVaEncodingContextH264.h"
 
 
 #define partition(ref, field, key, ascending)   \
@@ -22,6 +78,14 @@
         }                                       \
     }                                           \
 
+/**
+ * 
+ * @param ref
+ * @param left
+ * @param right
+ * @param ascending
+ * @param frame_idx
+ */
 static void sort_one(VAPictureH264 ref[], int left, int right,
                      int ascending, int frame_idx)
 {
@@ -44,7 +108,17 @@ static void sort_one(VAPictureH264 ref[], int left, int right,
     if (i < right)
         sort_one(ref, i, right, ascending, frame_idx);
 }
-
+/**
+ * 
+ * @param ref
+ * @param left
+ * @param right
+ * @param key
+ * @param frame_idx
+ * @param partition_ascending
+ * @param list0_ascending
+ * @param list1_ascending
+ */
 static void sort_two(VAPictureH264 ref[], int left, int right, unsigned int key, unsigned int frame_idx,
                      int partition_ascending, int list0_ascending, int list1_ascending)
 {
@@ -61,8 +135,11 @@ static void sort_two(VAPictureH264 ref[], int left, int right, unsigned int key,
     sort_one(ref, left, i-1, list0_ascending, frame_idx);
     sort_one(ref, j+1, right, list1_ascending, frame_idx);
 }
-
-static int update_ReferenceFrames(void)
+/**
+ * 
+ * @return 
+ */
+  int ADM_vaEncodingContextH264::update_ReferenceFrames(void)
 {
     int i;
     
@@ -82,8 +159,11 @@ static int update_ReferenceFrames(void)
     return 0;
 }
 
-
-static int update_RefPicList(void)
+/**
+ * 
+ * @return 
+ */
+int ADM_vaEncodingContextH264::update_RefPicList(void)
 {
     unsigned int current_poc = CurrentCurrPic.TopFieldOrderCnt;
     
@@ -105,8 +185,11 @@ static int update_RefPicList(void)
     return 0;
 }
 
-
-int render_sequence(void)
+/**
+ * 
+ * @return 
+ */
+int  ADM_vaEncodingContextH264::render_sequence(void)
 {
     VABufferID seq_param_buf, rc_param_buf, misc_param_tmpbuf, render_id[2];
     VAStatus va_status;
@@ -131,17 +214,14 @@ int render_sequence(void)
     seq_param.seq_fields.bits.frame_mbs_only_flag = 1;
     seq_param.seq_fields.bits.chroma_format_idc = 1;
     seq_param.seq_fields.bits.direct_8x8_inference_flag = 1;
-#warning FIXME    
-#if 0    
     if (frame_width != frame_width_mbaligned ||
         frame_height != frame_height_mbaligned) {
         seq_param.frame_cropping_flag = 1;
         seq_param.frame_crop_left_offset = 0;
-        seq_param.frame_crop_right_offset = (frame_width_mbaligned - getWidth())/2;
+        seq_param.frame_crop_right_offset = (frame_width_mbaligned - frame_width)/2;
         seq_param.frame_crop_top_offset = 0;
-        seq_param.frame_crop_bottom_offset = (frame_height_mbaligned - getHeight())/2;
+        seq_param.frame_crop_bottom_offset = (frame_height_mbaligned - frame_height)/2;
     }
-#endif    
     va_status = vaCreateBuffer(admLibVA::getDisplay(), context_id,
                                VAEncSequenceParameterBufferType,
                                sizeof(seq_param),1,&seq_param,&seq_param_buf);
@@ -187,8 +267,12 @@ int render_sequence(void)
 
     return 0;
 }
-
-static int calc_poc(int pic_order_cnt_lsb)
+/**
+ * 
+ * @param pic_order_cnt_lsb
+ * @return 
+ */
+int ADM_vaEncodingContextH264::calc_poc(int pic_order_cnt_lsb)
 {
     static int PicOrderCntMsb_ref = 0, pic_order_cnt_lsb_ref = 0;
     int prevPicOrderCntMsb, prevPicOrderCntLsb;
@@ -219,8 +303,11 @@ static int calc_poc(int pic_order_cnt_lsb)
     
     return TopFieldOrderCnt;
 }
-
-static int render_picture(void)
+/**
+ * 
+ * @return 
+ */
+int ADM_vaEncodingContextH264::render_picture(void)
 {
     VABufferID pic_param_buf;
     VAStatus va_status;
@@ -268,8 +355,11 @@ static int render_picture(void)
 
     return 0;
 }
-
-int render_packedsequence(void)
+/**
+ * 
+ * @return 
+ */
+int ADM_vaEncodingContextH264::render_packedsequence(void)
 {
     VAEncPackedHeaderParameterBuffer packedheader_param_buffer;
     VABufferID packedseq_para_bufid, packedseq_data_bufid, render_id[2];
@@ -307,8 +397,11 @@ int render_packedsequence(void)
     return 0;
 }
 
-
-int render_packedpicture(void)
+/**
+ * 
+ * @return 
+ */
+int ADM_vaEncodingContextH264::render_packedpicture(void)
 {
     VAEncPackedHeaderParameterBuffer packedheader_param_buffer;
     VABufferID packedpic_para_bufid, packedpic_data_bufid, render_id[2];
@@ -344,8 +437,10 @@ int render_packedpicture(void)
     
     return 0;
 }
-
-static void render_packedsei(void)
+/**
+ * 
+ */
+void ADM_vaEncodingContextH264::render_packedsei(void)
 {
     VAEncPackedHeaderParameterBuffer packed_header_param_buffer;
     VABufferID packed_sei_header_param_buf_id, packed_sei_buf_id, render_id[2];
@@ -407,8 +502,11 @@ static void render_packedsei(void)
     return;
 }
 
-
-static int render_hrd(void)
+/**
+ * 
+ * @return 
+ */
+int ADM_vaEncodingContextH264::render_hrd(void)
 {
     VABufferID misc_parameter_hrd_buf_id;
     VAStatus va_status;
@@ -443,8 +541,10 @@ static int render_hrd(void)
 
     return 0;
 }
-
-static void render_packedslice()
+/**
+ * 
+ */
+void ADM_vaEncodingContextH264::render_packedslice()
 {
     VAEncPackedHeaderParameterBuffer packedheader_param_buffer;
     VABufferID packedslice_para_bufid, packedslice_data_bufid, render_id[2];
@@ -478,8 +578,11 @@ static void render_packedslice()
 
     free(packedslice_buffer);
 }
-
-static int render_slice(void)
+/**
+ * 
+ * @return 
+ */
+int ADM_vaEncodingContextH264::render_slice(void)
 {
     VABufferID slice_param_buf;
     VAStatus va_status;
@@ -538,3 +641,5 @@ static int render_slice(void)
     
     return 0;
 }
+
+// EOF

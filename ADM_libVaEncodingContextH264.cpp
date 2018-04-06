@@ -7,78 +7,9 @@
 #include "ADM_coreVideoEncoder.h"
 
 
-#define SURFACE_NUM 16
-//-- Global configuration --
-namespace ADM_VA_Global
-{
-  extern int            ip_period;
-  extern VAProfile      h264_profile ;
-  extern VAConfigAttrib attrib[VAConfigAttribTypeMax];
-  extern VAConfigAttrib config_attrib[VAConfigAttribTypeMax];
-  extern int config_attrib_num ;
-  extern int constraint_set_flag ;
-  extern int h264_packedheader ; /* support pack header? */
-  extern int h264_maxref ;
-  extern int h264_entropy_mode ; /* cabac */
-  
-#warning FIXME
-  extern  int enc_packed_header_idx; // FIXME!
-#warning FIXME  
-};
-using namespace ADM_VA_Global;
 
 
 
-
-//-- Per instance configuration --
-static  VAConfigID config_id;
-static  VAContextID context_id;
-
-static  unsigned long long current_IDR_display = 0;
-
-static  int current_frame_type;
-static  int intra_idr_period = 60;
-static  VAEncSequenceParameterBufferH264 seq_param;
-static  VAEncPictureParameterBufferH264 pic_param;
-static  VAEncSliceParameterBufferH264 slice_param;
-static  VAPictureH264 CurrentCurrPic;
-static  VAPictureH264 ReferenceFrames[16], RefPicList0_P[32], RefPicList0_B[32], RefPicList1_B[32];
-
-static  unsigned int num_ref_frames = 2;
-static  unsigned int numShortTerm = 0;
-
-static  unsigned int MaxPicOrderCntLsb = (2<<8);
-static  unsigned int Log2MaxFrameNum = 16;
-static  unsigned int Log2MaxPicOrderCntLsb = 8;
-
-
-
-static  int frame_width = 176;
-static  int frame_height = 144;
-static  int frame_width_mbaligned;
-static  int frame_height_mbaligned;
-static  int frame_rate = 30;
-static  unsigned int frame_count = 60;
-static  unsigned int frame_bitrate = 0;
-static  unsigned int frame_slices = 1;
-static  double frame_size = 0;
-static  int initial_qp = 26;
-static  int minimal_qp = 0;
-static  int rc_mode = VA_RC_CQP;
-static  uint64_t current_frame_encoding,current_frame_display,current_frame_num;
-static  int intra_period;
-
-static  int misc_priv_type = 0;
-static  int misc_priv_value = 0;
-
-ADM_vaEncodingBuffers *vaEncodingBuffers[VA_ENC_NB_SURFACE];
-static  ADM_vaSurface *vaSurface[VA_ENC_NB_SURFACE];
-static  ADM_vaSurface *vaRefSurface[VA_ENC_NB_SURFACE];
-
-#include "vaDefines.h"
-#include "vaBitstream.h"
-#include "vaMisc.h"
-#include "vaRender.h"
 /**
  * 
  */
@@ -99,6 +30,30 @@ ADM_vaEncodingContextH264::ADM_vaEncodingContextH264()
     memset(&seq_param, 0, sizeof(seq_param));
     memset(&pic_param, 0, sizeof(pic_param));
     memset(&slice_param, 0, sizeof(slice_param));
+    
+    intra_idr_period = 60;
+    num_ref_frames = 2;
+    
+    
+    current_IDR_display = 0;    
+    numShortTerm = 0;
+
+    MaxPicOrderCntLsb = (2<<8);
+    Log2MaxFrameNum = 16;
+    Log2MaxPicOrderCntLsb = 8;
+
+
+
+    frame_rate = 30;
+    frame_count = 60;
+    frame_bitrate = 0;
+    frame_slices = 1;
+    frame_size = 0;
+    initial_qp = 26;
+    minimal_qp = 0;
+    rc_mode = VA_RC_CQP;
+    misc_priv_type = 0;
+    misc_priv_value = 0;   
 }
 /**
  * 
@@ -141,6 +96,8 @@ bool ADM_vaEncodingContextH264::setup( int width, int height, std::vector<ADM_va
 {
 
         VAStatus va_status;
+        frame_width=width;
+        frame_height=height;
         frame_width_mbaligned=(width+15)&~15;
         frame_height_mbaligned=(height+15)&~15;
         int  i;
