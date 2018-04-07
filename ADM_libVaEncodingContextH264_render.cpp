@@ -445,8 +445,9 @@ void ADM_vaEncodingContextH264::render_packedsei(void)
     VAEncPackedHeaderParameterBuffer packed_header_param_buffer;
     VABufferID packed_sei_header_param_buf_id, packed_sei_buf_id, render_id[2];
     unsigned int length_in_bits /*offset_in_bytes*/;
-    unsigned char *packed_sei_buffer = NULL;
+    
     VAStatus va_status;
+    vaBitstream bs;
     int init_cpb_size, target_bit_rate, i_initial_cpb_removal_delay_length, i_initial_cpb_removal_delay;
     int i_cpb_removal_delay, i_dpb_output_delay_length, i_cpb_removal_delay_length;
 
@@ -461,16 +462,15 @@ void ADM_vaEncodingContextH264::render_packedsei(void)
     i_dpb_output_delay_length = 24;
     
 
-    length_in_bits = build_packed_sei_buffer_timing(
+    build_packed_sei_buffer_timing(&bs,
         i_initial_cpb_removal_delay_length,
         i_initial_cpb_removal_delay,
         0,
         i_cpb_removal_delay_length,
         i_cpb_removal_delay * current_frame_encoding,
         i_dpb_output_delay_length,
-        0,
-        &packed_sei_buffer);
-
+        0        );
+    length_in_bits=bs.lengthInBits();
     //offset_in_bytes = 0;
     packed_header_param_buffer.type = VAEncPackedHeaderH264_SEI;
     packed_header_param_buffer.bit_length = length_in_bits;
@@ -486,7 +486,7 @@ void ADM_vaEncodingContextH264::render_packedsei(void)
     va_status = vaCreateBuffer(admLibVA::getDisplay(),
                                context_id,
                                VAEncPackedHeaderDataBufferType,
-                               (length_in_bits + 7) / 8, 1, packed_sei_buffer,
+                               (length_in_bits + 7) / 8, 1, bs.getPointer(),
                                &packed_sei_buf_id);
     CHECK_VASTATUS(va_status,"vaCreateBuffer");
 
@@ -495,10 +495,6 @@ void ADM_vaEncodingContextH264::render_packedsei(void)
     render_id[1] = packed_sei_buf_id;
     va_status = vaRenderPicture(admLibVA::getDisplay(),context_id, render_id, 2);
     CHECK_VASTATUS(va_status,"vaRenderPicture");
-
-    
-    free(packed_sei_buffer);
-        
     return;
 }
 

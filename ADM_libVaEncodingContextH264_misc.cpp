@@ -331,69 +331,66 @@ bool ADM_vaEncodingContextH264::build_packed_pic_buffer(vaBitstream *bs)
  * @param sei_buffer
  * @return 
  */  
- int ADM_vaEncodingContextH264::build_packed_sei_buffer_timing(unsigned int init_cpb_removal_length,
+ bool ADM_vaEncodingContextH264::build_packed_sei_buffer_timing(vaBitstream *bs,
+                                unsigned int init_cpb_removal_length,
 				unsigned int init_cpb_removal_delay,
 				unsigned int init_cpb_removal_delay_offset,
 				unsigned int cpb_removal_length,
 				unsigned int cpb_removal_delay,
 				unsigned int dpb_output_length,
-				unsigned int dpb_output_delay,
-				unsigned char **sei_buffer)
+				unsigned int dpb_output_delay)
 {
     unsigned char *byte_buf;
     int bp_byte_size, i, pic_byte_size;
 
-    bitstream nal_bs;
-    bitstream sei_bp_bs, sei_pic_bs;
 
-    bitstream_start(&sei_bp_bs);
-    bitstream_put_ue(&sei_bp_bs, 0);       /*seq_parameter_set_id*/
-    bitstream_put_ui(&sei_bp_bs, init_cpb_removal_delay, cpb_removal_length); 
-    bitstream_put_ui(&sei_bp_bs, init_cpb_removal_delay_offset, cpb_removal_length); 
-    if ( sei_bp_bs.bit_offset & 0x7) {
-        bitstream_put_ui(&sei_bp_bs, 1, 1);
-    }
-    bitstream_end(&sei_bp_bs);
-    bp_byte_size = (sei_bp_bs.bit_offset + 7) / 8;
+    // sei _bp 
+    vaBitstream sei_bp;
+    sei_bp.put_ue(0);
+    sei_bp.put_ui( init_cpb_removal_delay, cpb_removal_length); 
+    sei_bp.put_ui( init_cpb_removal_delay_offset, cpb_removal_length); 
+    sei_bp.add1BitIfNotaligned();
+    sei_bp.stop();
+    bp_byte_size = (sei_bp.lengthInBits() + 7) / 8;
     
-    bitstream_start(&sei_pic_bs);
-    bitstream_put_ui(&sei_pic_bs, cpb_removal_delay, cpb_removal_length); 
-    bitstream_put_ui(&sei_pic_bs, dpb_output_delay, dpb_output_length); 
-    if ( sei_pic_bs.bit_offset & 0x7) {
-        bitstream_put_ui(&sei_pic_bs, 1, 1);
-    }
-    bitstream_end(&sei_pic_bs);
-    pic_byte_size = (sei_pic_bs.bit_offset + 7) / 8;
+    // sei_pic
+    vaBitstream sei_pic;
     
-    bitstream_start(&nal_bs);
-    nal_start_code_prefix(&nal_bs);
-    nal_header(&nal_bs, NAL_REF_IDC_NONE, NAL_SEI);
+    sei_pic.put_ui(cpb_removal_delay, cpb_removal_length); 
+    sei_pic.put_ui(dpb_output_delay, dpb_output_length); 
+    sei_pic.add1BitIfNotaligned();
+    sei_pic.stop();
+    pic_byte_size = (sei_bp.lengthInBits() + 7) / 8;
+    //--- nal
+    vaBitstream nal;
+    
+    nal.startCodePrefix();
+    nal.nalHeader( NAL_REF_IDC_NONE, NAL_SEI);
 
 	/* Write the SEI buffer period data */    
-    bitstream_put_ui(&nal_bs, 0, 8);
-    bitstream_put_ui(&nal_bs, bp_byte_size, 8);
+    nal.put_ui( 0, 8);
+    nal.put_ui( bp_byte_size, 8);
     
-    byte_buf = (unsigned char *)sei_bp_bs.buffer;
+    
+    //------------ Merge-------------
+    
+    byte_buf = sei_bp.getPointer();
     for(i = 0; i < bp_byte_size; i++) {
-        bitstream_put_ui(&nal_bs, byte_buf[i], 8);
+        nal.put_ui(byte_buf[i], 8);
     }
-    free(byte_buf);
-	/* write the SEI timing data */
-    bitstream_put_ui(&nal_bs, 0x01, 8);
-    bitstream_put_ui(&nal_bs, pic_byte_size, 8);
     
-    byte_buf = (unsigned char *)sei_pic_bs.buffer;
+	/* write the SEI timing data */
+    nal.put_ui( 0x01, 8);
+    nal.put_ui( pic_byte_size, 8);
+    
+    byte_buf =sei_pic.getPointer();
     for(i = 0; i < pic_byte_size; i++) {
-        bitstream_put_ui(&nal_bs, byte_buf[i], 8);
+        nal.put_ui(byte_buf[i], 8);
     }
-    free(byte_buf);
-
-    rbsp_trailing_bits(&nal_bs);
-    bitstream_end(&nal_bs);
-
-    *sei_buffer = (unsigned char *)nal_bs.buffer; 
-   
-    return nal_bs.bit_offset;
+    
+    nal.rbspTrailingBits();
+    nal.stop();
+    return true;
 }
 /**
  * 

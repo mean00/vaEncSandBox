@@ -66,28 +66,16 @@ public:
         void    startCodePrefix();
         void    nalHeader(int nal_ref_idc, int nal_unit_type);
         int     lengthInBits() {return bit_offset;};
+        void    add1BitIfNotaligned()
+        {
+                if ( bit_offset & 0x7) 
+                {
+                    put_ui(1, 1);
+                }
+        }
         uint8_t *getPointer() {return  (uint8_t *)buffer;}
 protected:
     unsigned int *buffer;
     int          bit_offset;
     int          max_size_in_dword;
 };
-
-struct __bitstream {
-    unsigned int *buffer;
-    int bit_offset;
-    int max_size_in_dword;
-};
-typedef struct __bitstream bitstream;
-
-
-void bitstream_start(bitstream *bs);
-void bitstream_end(bitstream *bs);
-void bitstream_put_ui(bitstream *bs, unsigned int val, int size_in_bits);
-void bitstream_put_ue(bitstream *bs, unsigned int val);
-void bitstream_put_se(bitstream *bs, int val);
-void bitstream_byte_aligning(bitstream *bs, int bit);
-//--
-void rbsp_trailing_bits(bitstream *bs);
-void nal_start_code_prefix(bitstream *bs);
-void nal_header(bitstream *bs, int nal_ref_idc, int nal_unit_type);
