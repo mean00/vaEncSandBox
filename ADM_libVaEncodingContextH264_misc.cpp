@@ -196,14 +196,14 @@ void ADM_vaEncodingContextH264::pps_rbsp(vaBitstream *bs)
  * 
  * @param bs
  */
-void ADM_vaEncodingContextH264::slice_header(bitstream *bs)
+void ADM_vaEncodingContextH264::slice_header(vaBitstream *bs)
 {
     int first_mb_in_slice = slice_param.macroblock_address;
 
-    bitstream_put_ue(bs, first_mb_in_slice);        /* first_mb_in_slice: 0 */
-    bitstream_put_ue(bs, slice_param.slice_type);   /* slice_type */
-    bitstream_put_ue(bs, slice_param.pic_parameter_set_id);        /* pic_parameter_set_id: 0 */
-    bitstream_put_ui(bs, pic_param.frame_num, seq_param.seq_fields.bits.log2_max_frame_num_minus4 + 4); /* frame_num */
+    bs->put_ue( first_mb_in_slice);        /* first_mb_in_slice: 0 */
+    bs->put_ue( slice_param.slice_type);   /* slice_type */
+    bs->put_ue( slice_param.pic_parameter_set_id);        /* pic_parameter_set_id: 0 */
+    bs->put_ui( pic_param.frame_num, seq_param.seq_fields.bits.log2_max_frame_num_minus4 + 4); /* frame_num */
 
     /* frame_mbs_only_flag == 1 */
     if (!seq_param.seq_fields.bits.frame_mbs_only_flag) {
@@ -212,10 +212,10 @@ void ADM_vaEncodingContextH264::slice_header(bitstream *bs)
     }
 
     if (pic_param.pic_fields.bits.idr_pic_flag)
-        bitstream_put_ue(bs, slice_param.idr_pic_id);		/* idr_pic_id: 0 */
+        bs->put_ue( slice_param.idr_pic_id);		/* idr_pic_id: 0 */
 
     if (seq_param.seq_fields.bits.pic_order_cnt_type == 0) {
-        bitstream_put_ui(bs, pic_param.CurrPic.TopFieldOrderCnt, seq_param.seq_fields.bits.log2_max_pic_order_cnt_lsb_minus4 + 4);
+        bs->put_ui( pic_param.CurrPic.TopFieldOrderCnt, seq_param.seq_fields.bits.log2_max_pic_order_cnt_lsb_minus4 + 4);
         /* pic_order_present_flag == 0 */
     } else {
         /* FIXME: */
@@ -225,26 +225,26 @@ void ADM_vaEncodingContextH264::slice_header(bitstream *bs)
     /* redundant_pic_cnt_present_flag == 0 */
     /* slice type */
     if (IS_P_SLICE(slice_param.slice_type)) {
-        bitstream_put_ui(bs, slice_param.num_ref_idx_active_override_flag, 1);            /* num_ref_idx_active_override_flag: */
+        bs->put_ui( slice_param.num_ref_idx_active_override_flag, 1);            /* num_ref_idx_active_override_flag: */
 
         if (slice_param.num_ref_idx_active_override_flag)
-            bitstream_put_ue(bs, slice_param.num_ref_idx_l0_active_minus1);
+            bs->put_ue( slice_param.num_ref_idx_l0_active_minus1);
 
         /* ref_pic_list_reordering */
-        bitstream_put_ui(bs, 0, 1);            /* ref_pic_list_reordering_flag_l0: 0 */
+        bs->put_ui( 0, 1);            /* ref_pic_list_reordering_flag_l0: 0 */
     } else if (IS_B_SLICE(slice_param.slice_type)) {
-        bitstream_put_ui(bs, slice_param.direct_spatial_mv_pred_flag, 1);            /* direct_spatial_mv_pred: 1 */
+        bs->put_ui( slice_param.direct_spatial_mv_pred_flag, 1);            /* direct_spatial_mv_pred: 1 */
 
-        bitstream_put_ui(bs, slice_param.num_ref_idx_active_override_flag, 1);       /* num_ref_idx_active_override_flag: */
+        bs->put_ui( slice_param.num_ref_idx_active_override_flag, 1);       /* num_ref_idx_active_override_flag: */
 
         if (slice_param.num_ref_idx_active_override_flag) {
-            bitstream_put_ue(bs, slice_param.num_ref_idx_l0_active_minus1);
-            bitstream_put_ue(bs, slice_param.num_ref_idx_l1_active_minus1);
+            bs->put_ue( slice_param.num_ref_idx_l0_active_minus1);
+            bs->put_ue( slice_param.num_ref_idx_l1_active_minus1);
         }
 
         /* ref_pic_list_reordering */
-        bitstream_put_ui(bs, 0, 1);            /* ref_pic_list_reordering_flag_l0: 0 */
-        bitstream_put_ui(bs, 0, 1);            /* ref_pic_list_reordering_flag_l1: 0 */
+        bs->put_ui( 0, 1);            /* ref_pic_list_reordering_flag_l0: 0 */
+        bs->put_ui( 0, 1);            /* ref_pic_list_reordering_flag_l1: 0 */
     }
 
     if ((pic_param.pic_fields.bits.weighted_pred_flag &&
@@ -262,32 +262,32 @@ void ADM_vaEncodingContextH264::slice_header(bitstream *bs)
         unsigned char adaptive_ref_pic_marking_mode_flag = 0;
 
         if (pic_param.pic_fields.bits.idr_pic_flag) {
-            bitstream_put_ui(bs, no_output_of_prior_pics_flag, 1);            /* no_output_of_prior_pics_flag: 0 */
-            bitstream_put_ui(bs, long_term_reference_flag, 1);            /* long_term_reference_flag: 0 */
+            bs->put_ui( no_output_of_prior_pics_flag, 1);            /* no_output_of_prior_pics_flag: 0 */
+            bs->put_ui( long_term_reference_flag, 1);            /* long_term_reference_flag: 0 */
         } else {
-            bitstream_put_ui(bs, adaptive_ref_pic_marking_mode_flag, 1);            /* adaptive_ref_pic_marking_mode_flag: 0 */
+            bs->put_ui( adaptive_ref_pic_marking_mode_flag, 1);            /* adaptive_ref_pic_marking_mode_flag: 0 */
         }
     }
 
     if (pic_param.pic_fields.bits.entropy_coding_mode_flag &&
         !IS_I_SLICE(slice_param.slice_type))
-        bitstream_put_ue(bs, slice_param.cabac_init_idc);               /* cabac_init_idc: 0 */
+        bs->put_ue( slice_param.cabac_init_idc);               /* cabac_init_idc: 0 */
 
-    bitstream_put_se(bs, slice_param.slice_qp_delta);                   /* slice_qp_delta: 0 */
+    bs->put_se(  slice_param.slice_qp_delta);                   /* slice_qp_delta: 0 */
 
     /* ignore for SP/SI */
 
     if (pic_param.pic_fields.bits.deblocking_filter_control_present_flag) {
-        bitstream_put_ue(bs, slice_param.disable_deblocking_filter_idc);           /* disable_deblocking_filter_idc: 0 */
+        bs->put_ue( slice_param.disable_deblocking_filter_idc);           /* disable_deblocking_filter_idc: 0 */
 
         if (slice_param.disable_deblocking_filter_idc != 1) {
-            bitstream_put_se(bs, slice_param.slice_alpha_c0_offset_div2);          /* slice_alpha_c0_offset_div2: 2 */
-            bitstream_put_se(bs, slice_param.slice_beta_offset_div2);              /* slice_beta_offset_div2: 2 */
+            bs->put_se( slice_param.slice_alpha_c0_offset_div2);          /* slice_alpha_c0_offset_div2: 2 */
+            bs->put_se( slice_param.slice_beta_offset_div2);              /* slice_beta_offset_div2: 2 */
         }
     }
 
     if (pic_param.pic_fields.bits.entropy_coding_mode_flag) {
-        bitstream_byte_aligning(bs, 1);
+        bs->byteAlign(1);
     }
 }
 /**
@@ -400,29 +400,24 @@ bool ADM_vaEncodingContextH264::build_packed_pic_buffer(vaBitstream *bs)
  * @param header_buffer
  * @return 
  */
-  int ADM_vaEncodingContextH264::build_packed_slice_buffer(unsigned char **header_buffer)
-{
-    bitstream bs;
+  bool ADM_vaEncodingContextH264::build_packed_slice_buffer(vaBitstream *bs)
+{    
     int is_idr = !!pic_param.pic_fields.bits.idr_pic_flag;
     int is_ref = !!pic_param.pic_fields.bits.reference_pic_flag;
 
-    bitstream_start(&bs);
-    nal_start_code_prefix(&bs);
-
+    bs->startCodePrefix();
     if (IS_I_SLICE(slice_param.slice_type)) {
-        nal_header(&bs, NAL_REF_IDC_HIGH, is_idr ? NAL_IDR : NAL_NON_IDR);
+        bs->nalHeader( NAL_REF_IDC_HIGH, is_idr ? NAL_IDR : NAL_NON_IDR);
     } else if (IS_P_SLICE(slice_param.slice_type)) {
-        nal_header(&bs, NAL_REF_IDC_MEDIUM, NAL_NON_IDR);
+        bs->nalHeader(NAL_REF_IDC_MEDIUM, NAL_NON_IDR);
     } else {
         assert(IS_B_SLICE(slice_param.slice_type));
-        nal_header(&bs, is_ref ? NAL_REF_IDC_LOW : NAL_REF_IDC_NONE, NAL_NON_IDR);
+        bs->nalHeader( is_ref ? NAL_REF_IDC_LOW : NAL_REF_IDC_NONE, NAL_NON_IDR);
     }
 
-    slice_header(&bs);
-    bitstream_end(&bs);
-
-    *header_buffer = (unsigned char *)bs.buffer;
-    return bs.bit_offset;
+    slice_header(bs);
+    bs->stop();
+    return true;
 }
 
 /*

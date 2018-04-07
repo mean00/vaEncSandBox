@@ -87,7 +87,7 @@ protected:
 
          void sps_rbsp(vaBitstream *bs);
          void pps_rbsp(vaBitstream *bs);
-         void slice_header(bitstream *bs);
+         void slice_header(vaBitstream *bs);
          bool build_packed_pic_buffer(vaBitstream *bs);
          bool build_packed_seq_buffer(vaBitstream *bs);         
          int build_packed_sei_buffer_timing(unsigned int init_cpb_removal_length,
@@ -98,6 +98,7 @@ protected:
 				unsigned int dpb_output_length,
 				unsigned int dpb_output_delay,
 				unsigned char **sei_buffer);
+        bool build_packed_slice_buffer(vaBitstream *bs);
          int build_packed_slice_buffer(unsigned char **header_buffer);
          void encoding2display_order(    uint64_t encoding_order,int intra_period,    int intra_idr_period,int ip_period,    uint64_t *displaying_order,    int *frame_type);
         int update_ReferenceFrames(void);
