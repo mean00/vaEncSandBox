@@ -17,7 +17,7 @@ ADM_vaEncodingContextH264::ADM_vaEncodingContextH264()
 {
     context_id=VA_INVALID;
     config_id=VA_INVALID;
-    intra_period=30;
+    
     current_frame_encoding=current_frame_display=current_frame_num=0;
 
     for(int i=0;i<VA_ENC_NB_SURFACE;i++)
@@ -37,7 +37,7 @@ ADM_vaEncodingContextH264::ADM_vaEncodingContextH264()
     
     current_IDR_display = 0;    
     numShortTerm = 0;
-
+    intra_period=30;
     MaxPicOrderCntLsb = (2<<8);
     Log2MaxFrameNum = 16;
     Log2MaxPicOrderCntLsb = 8;

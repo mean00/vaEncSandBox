@@ -65,7 +65,7 @@ public:
         void    rbspTrailingBits();
         void    startCodePrefix();
         void    nalHeader(int nal_ref_idc, int nal_unit_type);
-
+        int     lengthInBits() {return bit_offset;};
         uint8_t *getPointer() {return  (uint8_t *)buffer;}
 protected:
     unsigned int *buffer;

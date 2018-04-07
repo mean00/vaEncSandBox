@@ -59,7 +59,7 @@
  * 
  * @param bs
  */
- void ADM_vaEncodingContextH264::sps_rbsp(bitstream *bs)
+ void ADM_vaEncodingContextH264::sps_rbsp(vaBitstream *bs)
 {
     int profile_idc = PROFILE_IDC_BASELINE;
 
@@ -68,129 +68,129 @@
     else if (h264_profile  == VAProfileH264Main)
         profile_idc = PROFILE_IDC_MAIN;
 
-    bitstream_put_ui(bs, profile_idc, 8);               /* profile_idc */
-    bitstream_put_ui(bs, !!(constraint_set_flag & 1), 1);                         /* constraint_set0_flag */
-    bitstream_put_ui(bs, !!(constraint_set_flag & 2), 1);                         /* constraint_set1_flag */
-    bitstream_put_ui(bs, !!(constraint_set_flag & 4), 1);                         /* constraint_set2_flag */
-    bitstream_put_ui(bs, !!(constraint_set_flag & 8), 1);                         /* constraint_set3_flag */
-    bitstream_put_ui(bs, 0, 4);                         /* reserved_zero_4bits */
-    bitstream_put_ui(bs, seq_param.level_idc, 8);      /* level_idc */
-    bitstream_put_ue(bs, seq_param.seq_parameter_set_id);      /* seq_parameter_set_id */
+    bs->put_ui( profile_idc, 8);               /* profile_idc */
+    bs->put_ui( !!(constraint_set_flag & 1), 1);                         /* constraint_set0_flag */
+    bs->put_ui( !!(constraint_set_flag & 2), 1);                         /* constraint_set1_flag */
+    bs->put_ui( !!(constraint_set_flag & 4), 1);                         /* constraint_set2_flag */
+    bs->put_ui( !!(constraint_set_flag & 8), 1);                         /* constraint_set3_flag */
+    bs->put_ui( 0, 4);                         /* reserved_zero_4bits */
+    bs->put_ui( seq_param.level_idc, 8);      /* level_idc */
+    bs->put_ue( seq_param.seq_parameter_set_id);      /* seq_parameter_set_id */
 
     if ( profile_idc == PROFILE_IDC_HIGH) {
-        bitstream_put_ue(bs, 1);        /* chroma_format_idc = 1, 4:2:0 */ 
-        bitstream_put_ue(bs, 0);        /* bit_depth_luma_minus8 */
-        bitstream_put_ue(bs, 0);        /* bit_depth_chroma_minus8 */
-        bitstream_put_ui(bs, 0, 1);     /* qpprime_y_zero_transform_bypass_flag */
-        bitstream_put_ui(bs, 0, 1);     /* seq_scaling_matrix_present_flag */
+        bs->put_ue(  1);        /* chroma_format_idc = 1, 4:2:0 */ 
+        bs->put_ue(  0);        /* bit_depth_luma_minus8 */
+        bs->put_ue(  0);        /* bit_depth_chroma_minus8 */
+        bs->put_ui( 0, 1);     /* qpprime_y_zero_transform_bypass_flag */
+        bs->put_ui( 0, 1);     /* seq_scaling_matrix_present_flag */
     }
 
-    bitstream_put_ue(bs, seq_param.seq_fields.bits.log2_max_frame_num_minus4); /* log2_max_frame_num_minus4 */
-    bitstream_put_ue(bs, seq_param.seq_fields.bits.pic_order_cnt_type);        /* pic_order_cnt_type */
+    bs->put_ue(  seq_param.seq_fields.bits.log2_max_frame_num_minus4); /* log2_max_frame_num_minus4 */
+    bs->put_ue(  seq_param.seq_fields.bits.pic_order_cnt_type);        /* pic_order_cnt_type */
 
     if (seq_param.seq_fields.bits.pic_order_cnt_type == 0)
-        bitstream_put_ue(bs, seq_param.seq_fields.bits.log2_max_pic_order_cnt_lsb_minus4);     /* log2_max_pic_order_cnt_lsb_minus4 */
+        bs->put_ue(  seq_param.seq_fields.bits.log2_max_pic_order_cnt_lsb_minus4);     /* log2_max_pic_order_cnt_lsb_minus4 */
     else {
         assert(0);
     }
 
-    bitstream_put_ue(bs, seq_param.max_num_ref_frames);        /* num_ref_frames */
-    bitstream_put_ui(bs, 0, 1);                                 /* gaps_in_frame_num_value_allowed_flag */
+    bs->put_ue(  seq_param.max_num_ref_frames);        /* num_ref_frames */
+    bs->put_ui( 0, 1);                                 /* gaps_in_frame_num_value_allowed_flag */
 
-    bitstream_put_ue(bs, seq_param.picture_width_in_mbs - 1);  /* pic_width_in_mbs_minus1 */
-    bitstream_put_ue(bs, seq_param.picture_height_in_mbs - 1); /* pic_height_in_map_units_minus1 */
-    bitstream_put_ui(bs, seq_param.seq_fields.bits.frame_mbs_only_flag, 1);    /* frame_mbs_only_flag */
+    bs->put_ue( seq_param.picture_width_in_mbs - 1);  /* pic_width_in_mbs_minus1 */
+    bs->put_ue(  seq_param.picture_height_in_mbs - 1); /* pic_height_in_map_units_minus1 */
+    bs->put_ui( seq_param.seq_fields.bits.frame_mbs_only_flag, 1);    /* frame_mbs_only_flag */
 
     if (!seq_param.seq_fields.bits.frame_mbs_only_flag) {
         assert(0);
     }
 
-    bitstream_put_ui(bs, seq_param.seq_fields.bits.direct_8x8_inference_flag, 1);      /* direct_8x8_inference_flag */
-    bitstream_put_ui(bs, seq_param.frame_cropping_flag, 1);            /* frame_cropping_flag */
+    bs->put_ui( seq_param.seq_fields.bits.direct_8x8_inference_flag, 1);      /* direct_8x8_inference_flag */
+    bs->put_ui( seq_param.frame_cropping_flag, 1);            /* frame_cropping_flag */
 
     if (seq_param.frame_cropping_flag) {
-        bitstream_put_ue(bs, seq_param.frame_crop_left_offset);        /* frame_crop_left_offset */
-        bitstream_put_ue(bs, seq_param.frame_crop_right_offset);       /* frame_crop_right_offset */
-        bitstream_put_ue(bs, seq_param.frame_crop_top_offset);         /* frame_crop_top_offset */
-        bitstream_put_ue(bs, seq_param.frame_crop_bottom_offset);      /* frame_crop_bottom_offset */
+        bs->put_ue(  seq_param.frame_crop_left_offset);        /* frame_crop_left_offset */
+        bs->put_ue(  seq_param.frame_crop_right_offset);       /* frame_crop_right_offset */
+        bs->put_ue(  seq_param.frame_crop_top_offset);         /* frame_crop_top_offset */
+        bs->put_ue(  seq_param.frame_crop_bottom_offset);      /* frame_crop_bottom_offset */
     }
     
     //if ( frame_bit_rate < 0 ) { //TODO EW: the vui header isn't correct
     if ( 1 ) {
-        bitstream_put_ui(bs, 0, 1); /* vui_parameters_present_flag */
+        bs->put_ui(  0, 1); /* vui_parameters_present_flag */
     } else {
-        bitstream_put_ui(bs, 1, 1); /* vui_parameters_present_flag */
-        bitstream_put_ui(bs, 0, 1); /* aspect_ratio_info_present_flag */
-        bitstream_put_ui(bs, 0, 1); /* overscan_info_present_flag */
-        bitstream_put_ui(bs, 0, 1); /* video_signal_type_present_flag */
-        bitstream_put_ui(bs, 0, 1); /* chroma_loc_info_present_flag */
-        bitstream_put_ui(bs, 1, 1); /* timing_info_present_flag */
+        bs->put_ui( 1, 1); /* vui_parameters_present_flag */
+        bs->put_ui( 0, 1); /* aspect_ratio_info_present_flag */
+        bs->put_ui( 0, 1); /* overscan_info_present_flag */
+        bs->put_ui( 0, 1); /* video_signal_type_present_flag */
+        bs->put_ui( 0, 1); /* chroma_loc_info_present_flag */
+        bs->put_ui( 1, 1); /* timing_info_present_flag */
         {
-            bitstream_put_ui(bs, 15, 32);
-            bitstream_put_ui(bs, 900, 32);
-            bitstream_put_ui(bs, 1, 1);
+            bs->put_ui( 15, 32);
+            bs->put_ui( 900, 32);
+            bs->put_ui( 1, 1);
         }
-        bitstream_put_ui(bs, 1, 1); /* nal_hrd_parameters_present_flag */
+        bs->put_ui( 1, 1); /* nal_hrd_parameters_present_flag */
         {
             // hrd_parameters 
-            bitstream_put_ue(bs, 0);    /* cpb_cnt_minus1 */
-            bitstream_put_ui(bs, 4, 4); /* bit_rate_scale */
-            bitstream_put_ui(bs, 6, 4); /* cpb_size_scale */
+            bs->put_ue(  0);    /* cpb_cnt_minus1 */
+            bs->put_ui( 4, 4); /* bit_rate_scale */
+            bs->put_ui( 6, 4); /* cpb_size_scale */
            
-            bitstream_put_ue(bs, frame_bitrate - 1); /* bit_rate_value_minus1[0] */
-            bitstream_put_ue(bs, frame_bitrate*8 - 1); /* cpb_size_value_minus1[0] */
-            bitstream_put_ui(bs, 1, 1);  /* cbr_flag[0] */
+            bs->put_ue( frame_bitrate - 1); /* bit_rate_value_minus1[0] */
+            bs->put_ue( frame_bitrate*8 - 1); /* cpb_size_value_minus1[0] */
+            bs->put_ui( 1, 1);  /* cbr_flag[0] */
 
-            bitstream_put_ui(bs, 23, 5);   /* initial_cpb_removal_delay_length_minus1 */
-            bitstream_put_ui(bs, 23, 5);   /* cpb_removal_delay_length_minus1 */
-            bitstream_put_ui(bs, 23, 5);   /* dpb_output_delay_length_minus1 */
-            bitstream_put_ui(bs, 23, 5);   /* time_offset_length  */
+            bs->put_ui( 23, 5);   /* initial_cpb_removal_delay_length_minus1 */
+            bs->put_ui( 23, 5);   /* cpb_removal_delay_length_minus1 */
+            bs->put_ui( 23, 5);   /* dpb_output_delay_length_minus1 */
+            bs->put_ui( 23, 5);   /* time_offset_length  */
         }
-        bitstream_put_ui(bs, 0, 1);   /* vcl_hrd_parameters_present_flag */
-        bitstream_put_ui(bs, 0, 1);   /* low_delay_hrd_flag */ 
+        bs->put_ui( 0, 1);   /* vcl_hrd_parameters_present_flag */
+        bs->put_ui( 0, 1);   /* low_delay_hrd_flag */ 
 
-        bitstream_put_ui(bs, 0, 1); /* pic_struct_present_flag */
-        bitstream_put_ui(bs, 0, 1); /* bitstream_restriction_flag */
+        bs->put_ui( 0, 1); /* pic_struct_present_flag */
+        bs->put_ui( 0, 1); /* bitstream_restriction_flag */
     }
-
-    rbsp_trailing_bits(bs);     /* rbsp_trailing_bits */
+    bs->rbspTrailingBits();
+         /* rbsp_trailing_bits */
 }
 
 /**
  * 
  * @param bs
  */
-void ADM_vaEncodingContextH264::pps_rbsp(bitstream *bs)
+void ADM_vaEncodingContextH264::pps_rbsp(vaBitstream *bs)
 {
-    bitstream_put_ue(bs, pic_param.pic_parameter_set_id);      /* pic_parameter_set_id */
-    bitstream_put_ue(bs, pic_param.seq_parameter_set_id);      /* seq_parameter_set_id */
+    bs->put_ue( pic_param.pic_parameter_set_id);      /* pic_parameter_set_id */
+    bs->put_ue( pic_param.seq_parameter_set_id);      /* seq_parameter_set_id */
 
-    bitstream_put_ui(bs, pic_param.pic_fields.bits.entropy_coding_mode_flag, 1);  /* entropy_coding_mode_flag */
+    bs->put_ui( pic_param.pic_fields.bits.entropy_coding_mode_flag, 1);  /* entropy_coding_mode_flag */
 
-    bitstream_put_ui(bs, 0, 1);                         /* pic_order_present_flag: 0 */
+    bs->put_ui(0, 1);                         /* pic_order_present_flag: 0 */
 
-    bitstream_put_ue(bs, 0);                            /* num_slice_groups_minus1 */
+    bs->put_ue( 0);                            /* num_slice_groups_minus1 */
 
-    bitstream_put_ue(bs, pic_param.num_ref_idx_l0_active_minus1);      /* num_ref_idx_l0_active_minus1 */
-    bitstream_put_ue(bs, pic_param.num_ref_idx_l1_active_minus1);      /* num_ref_idx_l1_active_minus1 1 */
+    bs->put_ue(pic_param.num_ref_idx_l0_active_minus1);      /* num_ref_idx_l0_active_minus1 */
+    bs->put_ue( pic_param.num_ref_idx_l1_active_minus1);      /* num_ref_idx_l1_active_minus1 1 */
 
-    bitstream_put_ui(bs, pic_param.pic_fields.bits.weighted_pred_flag, 1);     /* weighted_pred_flag: 0 */
-    bitstream_put_ui(bs, pic_param.pic_fields.bits.weighted_bipred_idc, 2);	/* weighted_bipred_idc: 0 */
+    bs->put_ui(pic_param.pic_fields.bits.weighted_pred_flag, 1);     /* weighted_pred_flag: 0 */
+    bs->put_ui(pic_param.pic_fields.bits.weighted_bipred_idc, 2);	/* weighted_bipred_idc: 0 */
 
-    bitstream_put_se(bs, pic_param.pic_init_qp - 26);  /* pic_init_qp_minus26 */
-    bitstream_put_se(bs, 0);                            /* pic_init_qs_minus26 */
-    bitstream_put_se(bs, 0);                            /* chroma_qp_index_offset */
+    bs->put_se( pic_param.pic_init_qp - 26);  /* pic_init_qp_minus26 */
+    bs->put_se( 0);                            /* pic_init_qs_minus26 */
+    bs->put_se( 0);                            /* chroma_qp_index_offset */
 
-    bitstream_put_ui(bs, pic_param.pic_fields.bits.deblocking_filter_control_present_flag, 1); /* deblocking_filter_control_present_flag */
-    bitstream_put_ui(bs, 0, 1);                         /* constrained_intra_pred_flag */
-    bitstream_put_ui(bs, 0, 1);                         /* redundant_pic_cnt_present_flag */
+    bs->put_ui( pic_param.pic_fields.bits.deblocking_filter_control_present_flag, 1); /* deblocking_filter_control_present_flag */
+    bs->put_ui( 0, 1);                         /* constrained_intra_pred_flag */
+    bs->put_ui( 0, 1);                         /* redundant_pic_cnt_present_flag */
     
     /* more_rbsp_data */
-    bitstream_put_ui(bs, pic_param.pic_fields.bits.transform_8x8_mode_flag, 1);    /*transform_8x8_mode_flag */
-    bitstream_put_ui(bs, 0, 1);                         /* pic_scaling_matrix_present_flag */
-    bitstream_put_se(bs, pic_param.second_chroma_qp_index_offset );    /*second_chroma_qp_index_offset */
+    bs->put_ui( pic_param.pic_fields.bits.transform_8x8_mode_flag, 1);    /*transform_8x8_mode_flag */
+    bs->put_ui( 0, 1);                         /* pic_scaling_matrix_present_flag */
+    bs->put_se( pic_param.second_chroma_qp_index_offset );    /*second_chroma_qp_index_offset */
 
-    rbsp_trailing_bits(bs);
+    bs->rbspTrailingBits();
 }
 /**
  * 
@@ -295,36 +295,28 @@ void ADM_vaEncodingContextH264::slice_header(bitstream *bs)
  * @param header_buffer
  * @return 
  */
-int ADM_vaEncodingContextH264::build_packed_pic_buffer(unsigned char **header_buffer)
+bool ADM_vaEncodingContextH264::build_packed_pic_buffer(vaBitstream *bs)
 {
-    bitstream bs;
-
-    bitstream_start(&bs);
-    nal_start_code_prefix(&bs);
-    nal_header(&bs, NAL_REF_IDC_HIGH, NAL_PPS);
-    pps_rbsp(&bs);
-    bitstream_end(&bs);
-
-    *header_buffer = (unsigned char *)bs.buffer;
-    return bs.bit_offset;
+    bs->startCodePrefix();
+    bs->nalHeader(NAL_REF_IDC_HIGH, NAL_PPS);
+    pps_rbsp(bs);
+    bs->startCodePrefix();
+    return true; // Offset
 }
 /**
  * 
  * @param header_buffer
  * @return 
  */
- int ADM_vaEncodingContextH264::build_packed_seq_buffer(unsigned char **header_buffer)
+ bool ADM_vaEncodingContextH264::build_packed_seq_buffer(vaBitstream *bs)
 {
-    bitstream bs;
 
-    bitstream_start(&bs);
-    nal_start_code_prefix(&bs);
-    nal_header(&bs, NAL_REF_IDC_HIGH, NAL_SPS);
-    sps_rbsp(&bs);
-    bitstream_end(&bs);
-
-    *header_buffer = (unsigned char *)bs.buffer;
-    return bs.bit_offset;
+    bs->startCodePrefix(); 
+    
+    bs->nalHeader( NAL_REF_IDC_HIGH, NAL_SPS);
+    sps_rbsp(bs);
+    bs->stop();
+    return true;
 }
 
 /**
@@ -442,7 +434,8 @@ void ADM_vaEncodingContextH264::encoding2display_order(    uint64_t encoding_ord
 {
     int encoding_order_gop = 0;
 
-    if (intra_period == 1) { /* all are I/IDR frames */
+    if (intra_period == 1) 
+    { /* all are I/IDR frames */
         *displaying_order = encoding_order;
         if (intra_idr_period == 0)
             *frame_type = (encoding_order == 0)?FRAME_IDR:FRAME_I;

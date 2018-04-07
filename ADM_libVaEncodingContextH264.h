@@ -85,11 +85,11 @@ protected:
           ADM_vaSurface *vaSurface[VA_ENC_NB_SURFACE];
           ADM_vaSurface *vaRefSurface[VA_ENC_NB_SURFACE];
 
-         void sps_rbsp(bitstream *bs);
-         void pps_rbsp(bitstream *bs);
+         void sps_rbsp(vaBitstream *bs);
+         void pps_rbsp(vaBitstream *bs);
          void slice_header(bitstream *bs);
-         int build_packed_pic_buffer(unsigned char **header_buffer);
-         int build_packed_seq_buffer(unsigned char **header_buffer);
+         bool build_packed_pic_buffer(vaBitstream *bs);
+         bool build_packed_seq_buffer(vaBitstream *bs);         
          int build_packed_sei_buffer_timing(unsigned int init_cpb_removal_length,
 				unsigned int init_cpb_removal_delay,
 				unsigned int init_cpb_removal_delay_offset,
