@@ -206,7 +206,7 @@ bool  ADM_vaEncodingContextH264::render_sequence(void)
 #warning fixme
     seq_param.intra_idr_period = intra_idr_period;
     seq_param.ip_period = ip_period;
-
+#warning fixme too
     seq_param.max_num_ref_frames = num_ref_frames;
     seq_param.seq_fields.bits.frame_mbs_only_flag = 1;
     seq_param.time_scale = 900;
@@ -627,8 +627,7 @@ bool ADM_vaEncodingContextH264::render_slice(void)
     slice_param.pic_order_cnt_lsb = (current_frame_display - current_IDR_display) % MaxPicOrderCntLsb;
     
 
-    if (h264_packedheader &&
-        config_attrib[enc_packed_header_idx].value & VA_ENC_PACKED_HEADER_SLICE)
+    if (h264_packedheader  & VA_ENC_PACKED_HEADER_SLICE)
         render_packedslice();
 
     CHECK_VA_STATUS_BOOL( vaCreateBuffer(admLibVA::getDisplay(),context_id,VAEncSliceParameterBufferType,

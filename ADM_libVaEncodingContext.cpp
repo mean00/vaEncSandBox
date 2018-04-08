@@ -62,20 +62,13 @@ static bool initDone=false;
 
 namespace ADM_VA_Global
 {
-  VAProfile      h264_profile ;
-  VAConfigAttrib attrib[VAConfigAttribTypeMax];
-  VAConfigAttrib config_attrib[VAConfigAttribTypeMax];
+  VAProfile      h264_profile = VAProfileNone ;
   int            ip_period = 1;
-  int            config_attrib_num = 0;
+  vaSetAttributes newAttributes;
   int            constraint_set_flag = 0;
   int            h264_packedheader = 0; /* support pack header? */
   int            h264_maxref = (1<<16|1);
-  int            h264_entropy_mode = 1; /* cabac */
-  
-  
-#warning FIXME
-  int enc_packed_header_idx; // FIXME!
-#warning FIXME  
+  int            h264_entropy_mode = 1; /* cabac */   
 
 };
 
@@ -104,180 +97,88 @@ ADM_vaEncodingContext *ADM_vaEncodingContext::allocate(int codec, int alignedWid
     }
     return r;
 }
-
-
-
-/*
- * Return displaying order with specified periods and encoding order
- * displaying_order: displaying order
- * frame_type: frame type 
+/* 
  */
 
+static bool  lookupSupportedFormat(VAProfile profile)
+{
+    int num_entrypoints, slice_entrypoint;
+    
+    // query it several times, but way simpler code
+    num_entrypoints = vaMaxNumEntrypoints(admLibVA::getDisplay());
+    VAEntrypoint *entrypoints = (VAEntrypoint*) alloca(num_entrypoints * sizeof(VAEntrypoint));
+    vaQueryConfigEntrypoints(admLibVA::getDisplay(), profile, entrypoints, &num_entrypoints);
+    for (int slice_entrypoint = 0; slice_entrypoint < num_entrypoints; slice_entrypoint++) 
+    {
+        if (entrypoints[slice_entrypoint] == VAEntrypointEncSlice) 
+        {
+            return true;
+        }
+    }
+    return false;
+}
+/**
+ * 
+ * @return 
+ */
 bool init_va(void)
 {
-    VAProfile profile_list[]={VAProfileH264High,VAProfileH264Main,VAProfileH264Baseline,VAProfileH264ConstrainedBaseline};
-    VAEntrypoint *entrypoints;
-    int num_entrypoints, slice_entrypoint;
-    int support_encode = 0;    
-    int major_ver, minor_ver;
-    VAStatus va_status;
-    unsigned int i;
-
-    num_entrypoints = vaMaxNumEntrypoints(admLibVA::getDisplay());
-    entrypoints = (VAEntrypoint*) malloc(num_entrypoints * sizeof(*entrypoints));
-    if (!entrypoints) {
-        ADM_warning( "error: failed to initialize VA entrypoints array\n");
-        return false;
-    }
-
-    /* use the highest profile */
-    for (i = 0; i < sizeof(profile_list)/sizeof(profile_list[0]); i++) 
+    if(lookupSupportedFormat(VAProfileH264High))
     {
-        h264_profile = profile_list[i];
-        vaQueryConfigEntrypoints(admLibVA::getDisplay(), h264_profile, entrypoints, &num_entrypoints);
-        for (slice_entrypoint = 0; slice_entrypoint < num_entrypoints; slice_entrypoint++) 
-        {
-            if (entrypoints[slice_entrypoint] == VAEntrypointEncSlice) 
-            {
-                support_encode = 1;
-                break;
-            }
-        }
-        if (support_encode == 1)
-            break;
-    }
-    
-    if (support_encode == 0) {
-        ADM_warning("Can't find VAEntrypointEncSlice for H264 profiles\n");
-        return false;
-    } else {
-        switch (h264_profile) {
-            case VAProfileH264Baseline:
-                printf("Use profile VAProfileH264Baseline\n");
-                constraint_set_flag |= (1 << 0); /* Annex A.2.1 */
-                h264_entropy_mode = 0;
-                break;
-            case VAProfileH264ConstrainedBaseline:
-                printf("Use profile VAProfileH264ConstrainedBaseline\n");
-                constraint_set_flag |= (1 << 0 | 1 << 1); /* Annex A.2.2 */
-                break;
-
-            case VAProfileH264Main:
-                printf("Use profile VAProfileH264Main\n");
-                constraint_set_flag |= (1 << 1); /* Annex A.2.2 */
-                break;
-
-            case VAProfileH264High:
-                constraint_set_flag |= (1 << 3); /* Annex A.2.4 */
-                printf("Use profile VAProfileH264High\n");
-                break;
-            default:
-                printf("unknow profile. Set to Baseline");
-                h264_profile = VAProfileH264Baseline;
-                constraint_set_flag |= (1 << 0); /* Annex A.2.1 */
-                break;
-        }
-    }
-
-    /* find out the format for the render target, and rate control mode */
-    for (i = 0; i < VAConfigAttribTypeMax; i++)
-        attrib[i].type = (VAConfigAttribType)i;
-
-    CHECK_VA_STATUS_BOOL(vaGetConfigAttributes(admLibVA::getDisplay(), h264_profile, VAEntrypointEncSlice,
-                                      &attrib[0], VAConfigAttribTypeMax));
-    
-    /* check the interested configattrib */
-    if ((attrib[VAConfigAttribRTFormat].value & VA_RT_FORMAT_YUV420) == 0) {
-        ADM_warning("Not find desired YUV420 RT format\n");
-        return false;
-    } else {
-        config_attrib[config_attrib_num].type = VAConfigAttribRTFormat;
-        config_attrib[config_attrib_num].value = VA_RT_FORMAT_YUV420;
-        config_attrib_num++;
-    }
-    
-#if 1
-
-    if (attrib[VAConfigAttribEncPackedHeaders].value != VA_ATTRIB_NOT_SUPPORTED) 
+        ADM_info("H264 High is supported\n");
+        h264_profile=VAProfileH264High;
+        constraint_set_flag |= (1 << 3); /* Annex A.2.4 */
+    }else
+    if(lookupSupportedFormat(VAProfileH264Main))
     {
-        int tmp = attrib[VAConfigAttribEncPackedHeaders].value;
-
-        printf("Support VAConfigAttribEncPackedHeaders\n");
-        
-        h264_packedheader = 1;
-        config_attrib[config_attrib_num].type = VAConfigAttribEncPackedHeaders;
-        config_attrib[config_attrib_num].value = VA_ENC_PACKED_HEADER_NONE;
-        
-        if (tmp & VA_ENC_PACKED_HEADER_SEQUENCE) {
-            printf("Support packed sequence headers\n");
-            config_attrib[config_attrib_num].value |= VA_ENC_PACKED_HEADER_SEQUENCE;
-        }
-        
-        if (tmp & VA_ENC_PACKED_HEADER_PICTURE) {
-            printf("Support packed picture headers\n");
-            config_attrib[config_attrib_num].value |= VA_ENC_PACKED_HEADER_PICTURE;
-        }
-        
-        if (tmp & VA_ENC_PACKED_HEADER_SLICE) {
-            printf("Support packed slice headers\n");
-            config_attrib[config_attrib_num].value |= VA_ENC_PACKED_HEADER_SLICE;
-        }
-        
-        if (tmp & VA_ENC_PACKED_HEADER_MISC) {
-            printf("Support packed misc headers\n");
-            config_attrib[config_attrib_num].value |= VA_ENC_PACKED_HEADER_MISC;
-        }
-        
-        enc_packed_header_idx = config_attrib_num;
-        config_attrib_num++;
+        ADM_info("H264 Main is supported\n");
+        h264_profile=VAProfileH264Main;
+        constraint_set_flag |= (1 << 1); /* Annex A.2.2 */
     }
-#endif    
-
-    if (attrib[VAConfigAttribEncInterlaced].value != VA_ATTRIB_NOT_SUPPORTED) {
-        int tmp = attrib[VAConfigAttribEncInterlaced].value;
-        
-        printf("Support VAConfigAttribEncInterlaced\n");
-
-        if (tmp & VA_ENC_INTERLACED_FRAME)
-            printf("support VA_ENC_INTERLACED_FRAME\n");
-        if (tmp & VA_ENC_INTERLACED_FIELD)
-            printf("Support VA_ENC_INTERLACED_FIELD\n");
-        if (tmp & VA_ENC_INTERLACED_MBAFF)
-            printf("Support VA_ENC_INTERLACED_MBAFF\n");
-        if (tmp & VA_ENC_INTERLACED_PAFF)
-            printf("Support VA_ENC_INTERLACED_PAFF\n");
-        
-        config_attrib[config_attrib_num].type = VAConfigAttribEncInterlaced;
-        config_attrib[config_attrib_num].value = VA_ENC_PACKED_HEADER_NONE;
-        config_attrib_num++;
+    else
+    {
+        ADM_warning("No support for encoding (H264 High or Main)\n");
+        return false;
     }
     
-    if (attrib[VAConfigAttribEncMaxRefFrames].value != VA_ATTRIB_NOT_SUPPORTED) {
-        h264_maxref = attrib[VAConfigAttribEncMaxRefFrames].value;
+    vaAttributes attributes(h264_profile);
+    
+    
+    
+    if(!attributes.isSet(VAConfigAttribRTFormat,VA_RT_FORMAT_YUV420))
+    {
+        ADM_warning("YUV420 not supported, bailing\n");
+        return false;
+    }
+    newAttributes.add(VAConfigAttribRTFormat,VA_RT_FORMAT_YUV420);
+    
+    uint32_t pack=attributes.get(VAConfigAttribEncPackedHeaders);
+    if(pack!=VA_ATTRIB_NOT_SUPPORTED)
+    {        
+        ADM_info("Support VAConfigAttribEncPackedHeaders\n");
         
-        printf("Support %d RefPicList0 and %d RefPicList1\n",
-               h264_maxref & 0xffff, (h264_maxref >> 16) & 0xffff );
-    }
-
-    if (attrib[VAConfigAttribEncMaxSlices].value != VA_ATTRIB_NOT_SUPPORTED)
-        printf("Support %d slices\n", attrib[VAConfigAttribEncMaxSlices].value);
-
-    if (attrib[VAConfigAttribEncSliceStructure].value != VA_ATTRIB_NOT_SUPPORTED) {
-        int tmp = attrib[VAConfigAttribEncSliceStructure].value;
         
-        printf("Support VAConfigAttribEncSliceStructure\n");
-
-        if (tmp & VA_ENC_SLICE_STRUCTURE_ARBITRARY_ROWS)
-            printf("Support VA_ENC_SLICE_STRUCTURE_ARBITRARY_ROWS\n");
-        if (tmp & VA_ENC_SLICE_STRUCTURE_POWER_OF_TWO_ROWS)
-            printf("Support VA_ENC_SLICE_STRUCTURE_POWER_OF_TWO_ROWS\n");
-        if (tmp & VA_ENC_SLICE_STRUCTURE_ARBITRARY_MACROBLOCKS)
-            printf("Support VA_ENC_SLICE_STRUCTURE_ARBITRARY_MACROBLOCKS\n");
-    }
-    if (attrib[VAConfigAttribEncMacroblockInfo].value != VA_ATTRIB_NOT_SUPPORTED) {
-        printf("Support VAConfigAttribEncMacroblockInfo\n");
+        uint32_t new_value=VA_ENC_PACKED_HEADER_NONE;
+        
+        if (pack & VA_ENC_PACKED_HEADER_SEQUENCE) { new_value |=VA_ENC_PACKED_HEADER_SEQUENCE;}
+        if (pack & VA_ENC_PACKED_HEADER_PICTURE) { new_value |=VA_ENC_PACKED_HEADER_PICTURE;}
+        if (pack & VA_ENC_PACKED_HEADER_SLICE) { new_value |=VA_ENC_PACKED_HEADER_SLICE;}
+        if (pack & VA_ENC_PACKED_HEADER_MISC) { new_value |=VA_ENC_PACKED_HEADER_MISC;}
+        h264_packedheader = new_value;
+        newAttributes.add(VAConfigAttribEncPackedHeaders,new_value);
     }
 
-    free(entrypoints);
+    int ilaced=attributes.get(VAConfigAttribEncInterlaced);
+    if(ilaced!=VA_ATTRIB_NOT_SUPPORTED)
+    {
+        newAttributes.add(VAConfigAttribEncInterlaced,VA_ENC_INTERLACED_NONE);
+    }
+    int h264_maxref_tmp=attributes.get(VAConfigAttribEncMaxRefFrames);
+    if(h264_maxref_tmp!=VA_ATTRIB_NOT_SUPPORTED)
+    {    
+        h264_maxref = h264_maxref_tmp;
+        ADM_info("Max ref frame is %d\n",h264_maxref);
+    }
     return true;
 }
+

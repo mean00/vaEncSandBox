@@ -61,19 +61,14 @@
 //-- Global configuration --
 namespace ADM_VA_Global
 {
-  extern int            ip_period;
+  
   extern VAProfile      h264_profile ;
-  extern VAConfigAttrib attrib[VAConfigAttribTypeMax];
-  extern VAConfigAttrib config_attrib[VAConfigAttribTypeMax];
-  extern int config_attrib_num ;
+  extern int            ip_period;
+  extern vaSetAttributes newAttributes;
   extern int constraint_set_flag ;
   extern int h264_packedheader ; /* support pack header? */
   extern int h264_maxref ;
   extern int h264_entropy_mode ; /* cabac */
-  
-#warning FIXME
-  extern  int enc_packed_header_idx; // FIXME!
-#warning FIXME  
 };
 using namespace ADM_VA_Global;
 

@@ -65,3 +65,55 @@ public:
     static       ADM_vaEncodingContext *allocate(int codec, int width, int height, std::vector<ADM_vaSurface *>knownSurfaces);
     virtual bool encode(ADMImage *in, ADMBitstream *out)=0;
 };
+
+
+/**
+ * 
+ * @param profile
+ */
+class vaAttributes
+{
+public:
+        vaAttributes(VAProfile profile)
+        {            
+            for (int i = 0; i < VAConfigAttribTypeMax; i++)
+                attrib[i].type = (VAConfigAttribType)i;
+            ADM_assert(VA_STATUS_SUCCESS==vaGetConfigAttributes(admLibVA::getDisplay(), profile, VAEntrypointEncSlice,  &attrib[0], VAConfigAttribTypeMax));
+        }
+        bool isSet(int attribute, int mask)
+        {
+            return attrib[attribute].value & mask;
+        }
+        uint32_t get(VAConfigAttribType key)
+        {
+            return attrib[key].value;
+        }
+
+protected:
+        VAConfigAttrib attrib[VAConfigAttribTypeMax];
+      
+};
+/**
+ * 
+ */
+class vaSetAttributes
+{
+    
+public:
+    vaSetAttributes()
+    {
+        xindex=0;
+    }
+    void add(VAConfigAttribType key, int value)
+    {
+        attrib[xindex].type=key;
+        attrib[xindex].value=value;
+        xindex++;
+    }
+    int count() {return xindex;};
+    VAConfigAttrib *getPointer() {return &attrib[0];}
+
+protected:
+        VAConfigAttrib attrib[VAConfigAttribTypeMax];    
+        int xindex;
+};

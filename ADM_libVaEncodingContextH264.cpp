@@ -147,9 +147,12 @@ bool ADM_vaEncodingContextH264::setup( int width, int height, std::vector<ADM_va
         frame_width_mbaligned=(width+15)&~15;
         frame_height_mbaligned=(height+15)&~15;
         int  i;
+        
 
+        
+        // marshall new config...
         CHECK_VA_STATUS_BOOL( vaCreateConfig(admLibVA::getDisplay(), h264_profile, VAEntrypointEncSlice,
-                &config_attrib[0], config_attrib_num, &config_id));
+                newAttributes.getPointer(), newAttributes.count(), &config_id));
         
 
         int n=knownSurfaces.size();                    
