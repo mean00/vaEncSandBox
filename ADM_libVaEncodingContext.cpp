@@ -142,14 +142,12 @@ bool init_va(void)
     }
     
     vaAttributes attributes(h264_profile);
-    
-    
-    
     if(!attributes.isSet(VAConfigAttribRTFormat,VA_RT_FORMAT_YUV420))
     {
         ADM_warning("YUV420 not supported, bailing\n");
         return false;
     }
+    newAttributes.clean();
     newAttributes.add(VAConfigAttribRTFormat,VA_RT_FORMAT_YUV420);
     
     uint32_t pack=attributes.get(VAConfigAttribEncPackedHeaders);
@@ -159,11 +157,11 @@ bool init_va(void)
         
         
         uint32_t new_value=VA_ENC_PACKED_HEADER_NONE;
-        
-        if (pack & VA_ENC_PACKED_HEADER_SEQUENCE) { new_value |=VA_ENC_PACKED_HEADER_SEQUENCE;}
-        if (pack & VA_ENC_PACKED_HEADER_PICTURE) { new_value |=VA_ENC_PACKED_HEADER_PICTURE;}
-        if (pack & VA_ENC_PACKED_HEADER_SLICE) { new_value |=VA_ENC_PACKED_HEADER_SLICE;}
-        if (pack & VA_ENC_PACKED_HEADER_MISC) { new_value |=VA_ENC_PACKED_HEADER_MISC;}
+#define CHECK_PACK(x) if(pack & x)         {new_value |=x;ADM_info("\t "#x" is supported\n");}
+        CHECK_PACK(VA_ENC_PACKED_HEADER_SEQUENCE)
+        CHECK_PACK(VA_ENC_PACKED_HEADER_PICTURE)
+        CHECK_PACK(VA_ENC_PACKED_HEADER_SLICE)
+        CHECK_PACK(VA_ENC_PACKED_HEADER_MISC)
         h264_packedheader = new_value;
         newAttributes.add(VAConfigAttribEncPackedHeaders,new_value);
     }
@@ -181,4 +179,5 @@ bool init_va(void)
     }
     return true;
 }
+
 

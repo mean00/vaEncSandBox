@@ -110,6 +110,10 @@ public:
         attrib[xindex].value=value;
         xindex++;
     }
+    void clean(void)
+    {
+      xindex=0;
+    }
     int count() {return xindex;};
     VAConfigAttrib *getPointer() {return &attrib[0];}
 
