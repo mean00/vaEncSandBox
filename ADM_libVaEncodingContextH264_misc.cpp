@@ -62,13 +62,24 @@
 void ADM_vaEncodingContextH264::sps_rbsp(vaBitstream *bs)
 {
     int profile_idc = PROFILE_IDC_BASELINE;
-
-    if (h264_profile == VAProfileH264High)
+    int constraint_set_flag=0;    
+    
+    switch(h264_profile)
+    {
+    case VAProfileH264High:
         profile_idc = PROFILE_IDC_HIGH;
-    else if (h264_profile == VAProfileH264Main)
+        constraint_set_flag=(1 << 3);
+        break;
+    case VAProfileH264Main:
         profile_idc = PROFILE_IDC_MAIN;
-
+         constraint_set_flag=(1 << 1);
+         break;
+    default:
+        ADM_assert(0);
+        break;
+    }   
     bs->put_ui(profile_idc, 8); /* profile_idc */
+    
     bs->put_ui(!!(constraint_set_flag & 1), 1); /* constraint_set0_flag */
     bs->put_ui(!!(constraint_set_flag & 2), 1); /* constraint_set1_flag */
     bs->put_ui(!!(constraint_set_flag & 4), 1); /* constraint_set2_flag */

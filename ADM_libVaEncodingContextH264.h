@@ -65,10 +65,8 @@ namespace ADM_VA_Global
   extern VAProfile      h264_profile ;
   extern int            ip_period;
   extern vaSetAttributes newAttributes;
-  extern int constraint_set_flag ;
   extern int h264_packedheader ; /* support pack header? */
   extern int h264_maxref ;
-  extern int h264_entropy_mode ; /* cabac */
 };
 using namespace ADM_VA_Global;
 

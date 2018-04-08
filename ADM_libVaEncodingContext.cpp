@@ -62,14 +62,11 @@ static bool initDone=false;
 
 namespace ADM_VA_Global
 {
-  VAProfile      h264_profile = VAProfileNone ;
+  VAProfile      h264_profile = VAProfileNone ; // High = (1 << 3), main = (1 << 1)
   int            ip_period = 1;
   vaSetAttributes newAttributes;
-  int            constraint_set_flag = 0;
   int            h264_packedheader = 0; /* support pack header? */
   int            h264_maxref = (1<<16|1);
-  int            h264_entropy_mode = 1; /* cabac */   
-
 };
 
 using namespace ADM_VA_Global;
@@ -126,14 +123,13 @@ bool init_va(void)
     if(lookupSupportedFormat(VAProfileH264High))
     {
         ADM_info("H264 High is supported\n");
-        h264_profile=VAProfileH264High;
-        constraint_set_flag |= (1 << 3); /* Annex A.2.4 */
+        h264_profile=VAProfileH264High;        
     }else
     if(lookupSupportedFormat(VAProfileH264Main))
     {
         ADM_info("H264 Main is supported\n");
         h264_profile=VAProfileH264Main;
-        constraint_set_flag |= (1 << 1); /* Annex A.2.2 */
+
     }
     else
     {

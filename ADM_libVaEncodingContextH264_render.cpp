@@ -366,7 +366,7 @@ bool ADM_vaEncodingContextH264::render_picture(void)
 
     pic_param.pic_fields.bits.idr_pic_flag = (current_frame_type == FRAME_IDR);
     pic_param.pic_fields.bits.reference_pic_flag = (current_frame_type != FRAME_B);
-    pic_param.pic_fields.bits.entropy_coding_mode_flag = h264_entropy_mode;
+    pic_param.pic_fields.bits.entropy_coding_mode_flag = 1;
     pic_param.pic_fields.bits.deblocking_filter_control_present_flag = 1;
     pic_param.frame_num = current_frame_num;
     pic_param.coded_buf = vaEncodingBuffers[current_slot]->getId();
