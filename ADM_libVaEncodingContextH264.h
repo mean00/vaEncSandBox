@@ -160,7 +160,7 @@ protected:
         bool render_packedpicture(void);
         bool render_packedsei(void);
         bool render_hrd(void);
-        void render_packedslice(void);
+        bool render_packedslice(void);
         bool render_slice(void);
         
         int gop_start;

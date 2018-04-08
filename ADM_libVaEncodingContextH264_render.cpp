@@ -57,11 +57,6 @@
 
 
 
-#define CHECK_VASTATUS(va_status,func)                                  \
-    if (va_status != VA_STATUS_SUCCESS) {                               \
-        fprintf(stderr,"%s:%s (%d) failed,exit\n", __func__, func, __LINE__); \
-        exit(1);                                                        \
-    }
 #define partition(ref, field, key, ascending)   \
     while (i <= j) {                            \
         if (ascending) {                        \
@@ -229,16 +224,16 @@ bool  ADM_vaEncodingContextH264::render_sequence(void)
         seq_param.frame_crop_top_offset = 0;
         seq_param.frame_crop_bottom_offset = (frame_height_mbaligned - frame_height)/2;
     }
-    va_status = vaCreateBuffer(admLibVA::getDisplay(), context_id,
+    CHECK_VA_STATUS_BOOL(vaCreateBuffer(admLibVA::getDisplay(), context_id,
                                VAEncSequenceParameterBufferType,
-                               sizeof(seq_param),1,&seq_param,&seq_param_buf);
-    CHECK_VASTATUS(va_status,"vaCreateBuffer");
+                               sizeof(seq_param),1,&seq_param,&seq_param_buf));
     
-    va_status = vaCreateBuffer(admLibVA::getDisplay(), context_id,
+    
+    CHECK_VA_STATUS_BOOL( vaCreateBuffer(admLibVA::getDisplay(), context_id,
                                VAEncMiscParameterBufferType,
                                sizeof(VAEncMiscParameterBuffer) + sizeof(VAEncMiscParameterRateControl),
-                               1,NULL,&rc_param_buf);
-    CHECK_VASTATUS(va_status,"vaCreateBuffer");
+                               1,NULL,&rc_param_buf));
+    
     
     vaMapBuffer(admLibVA::getDisplay(), rc_param_buf,(void **)&misc_param);
     misc_param->type = VAEncMiscParameterTypeRateControl;
@@ -255,15 +250,15 @@ bool  ADM_vaEncodingContextH264::render_sequence(void)
     render_id[0] = seq_param_buf;
     render_id[1] = rc_param_buf;
     
-    va_status = vaRenderPicture(admLibVA::getDisplay(),context_id, &render_id[0], 2);
-    CHECK_VASTATUS(va_status,"vaRenderPicture");;
+    CHECK_VA_STATUS_BOOL( vaRenderPicture(admLibVA::getDisplay(),context_id, &render_id[0], 2));
+    
 
     if (misc_priv_type != 0) {
-        va_status = vaCreateBuffer(admLibVA::getDisplay(), context_id,
+        CHECK_VA_STATUS_BOOL( vaCreateBuffer(admLibVA::getDisplay(), context_id,
                                    VAEncMiscParameterBufferType,
                                    sizeof(VAEncMiscParameterBuffer),
-                                   1, NULL, &misc_param_tmpbuf);
-        CHECK_VASTATUS(va_status,"vaCreateBuffer");
+                                   1, NULL, &misc_param_tmpbuf));
+        
         vaMapBuffer(admLibVA::getDisplay(), misc_param_tmpbuf,(void **)&misc_param_tmp);
         misc_param_tmp->type = (VAEncMiscParameterType)misc_priv_type;
         misc_param_tmp->data[0] = misc_priv_value;
@@ -353,12 +348,12 @@ bool ADM_vaEncodingContextH264::render_picture(void)
     pic_param.last_picture = (current_frame_encoding == frame_count);
     pic_param.pic_init_qp = initial_qp;
 
-    va_status = vaCreateBuffer(admLibVA::getDisplay(), context_id,VAEncPictureParameterBufferType,
-                               sizeof(pic_param),1,&pic_param, &pic_param_buf);
-    CHECK_VASTATUS(va_status,"vaCreateBuffer");;
+    CHECK_VA_STATUS_BOOL( vaCreateBuffer(admLibVA::getDisplay(), context_id,VAEncPictureParameterBufferType,
+                               sizeof(pic_param),1,&pic_param, &pic_param_buf));
+    
 
-    va_status = vaRenderPicture(admLibVA::getDisplay(),context_id, &pic_param_buf, 1);
-    CHECK_VASTATUS(va_status,"vaRenderPicture");
+    CHECK_VA_STATUS_BOOL(vaRenderPicture(admLibVA::getDisplay(),context_id, &pic_param_buf, 1));
+    
 
     return true;
 }
@@ -382,24 +377,24 @@ bool ADM_vaEncodingContextH264::render_packedsequence(void)
     
     packedheader_param_buffer.bit_length = length_in_bits; /*length_in_bits*/
     packedheader_param_buffer.has_emulation_bytes = 0;
-    va_status = vaCreateBuffer(admLibVA::getDisplay(),
+    CHECK_VA_STATUS_BOOL( vaCreateBuffer(admLibVA::getDisplay(),
                                context_id,
                                VAEncPackedHeaderParameterBufferType,
                                sizeof(packedheader_param_buffer), 1, &packedheader_param_buffer,
-                               &packedseq_para_bufid);
-    CHECK_VASTATUS(va_status,"vaCreateBuffer");
+                               &packedseq_para_bufid));
+    
 
-    va_status = vaCreateBuffer(admLibVA::getDisplay(),
+    CHECK_VA_STATUS_BOOL( vaCreateBuffer(admLibVA::getDisplay(),
                                context_id,
                                VAEncPackedHeaderDataBufferType,
                                (length_in_bits + 7) / 8, 1, bs.getPointer(),
-                               &packedseq_data_bufid);
-    CHECK_VASTATUS(va_status,"vaCreateBuffer");
+                               &packedseq_data_bufid));
+    
 
     render_id[0] = packedseq_para_bufid;
     render_id[1] = packedseq_data_bufid;
-    va_status = vaRenderPicture(admLibVA::getDisplay(),context_id, render_id, 2);
-    CHECK_VASTATUS(va_status,"vaRenderPicture");
+    CHECK_VA_STATUS_BOOL( vaRenderPicture(admLibVA::getDisplay(),context_id, render_id, 2));
+    
     return true;
 }
 
@@ -423,24 +418,24 @@ bool ADM_vaEncodingContextH264::render_packedpicture(void)
     packedheader_param_buffer.bit_length = length_in_bits;
     packedheader_param_buffer.has_emulation_bytes = 0;
 
-    va_status = vaCreateBuffer(admLibVA::getDisplay(),
+    CHECK_VA_STATUS_BOOL( vaCreateBuffer(admLibVA::getDisplay(),
                                context_id,
                                VAEncPackedHeaderParameterBufferType,
                                sizeof(packedheader_param_buffer), 1, &packedheader_param_buffer,
-                               &packedpic_para_bufid);
-    CHECK_VASTATUS(va_status,"vaCreateBuffer");
+                               &packedpic_para_bufid));
+    
 
-    va_status = vaCreateBuffer(admLibVA::getDisplay(),
+    CHECK_VA_STATUS_BOOL( vaCreateBuffer(admLibVA::getDisplay(),
                                context_id,
                                VAEncPackedHeaderDataBufferType,
                                (length_in_bits + 7) / 8, 1, bs.getPointer(),
-                               &packedpic_data_bufid);
-    CHECK_VASTATUS(va_status,"vaCreateBuffer");
+                               &packedpic_data_bufid));
+    
 
     render_id[0] = packedpic_para_bufid;
     render_id[1] = packedpic_data_bufid;
-    va_status = vaRenderPicture(admLibVA::getDisplay(),context_id, render_id, 2);
-    CHECK_VASTATUS(va_status,"vaRenderPicture");
+    CHECK_VA_STATUS_BOOL( vaRenderPicture(admLibVA::getDisplay(),context_id, render_id, 2));
+    
 
     return true;
 }
@@ -483,25 +478,25 @@ bool ADM_vaEncodingContextH264::render_packedsei(void)
     packed_header_param_buffer.bit_length = length_in_bits;
     packed_header_param_buffer.has_emulation_bytes = 0;
 
-    va_status = vaCreateBuffer(admLibVA::getDisplay(),
+    CHECK_VA_STATUS_BOOL(vaCreateBuffer(admLibVA::getDisplay(),
                                context_id,
                                VAEncPackedHeaderParameterBufferType,
                                sizeof(packed_header_param_buffer), 1, &packed_header_param_buffer,
-                               &packed_sei_header_param_buf_id);
-    CHECK_VASTATUS(va_status,"vaCreateBuffer");
+                               &packed_sei_header_param_buf_id));
+    
 
-    va_status = vaCreateBuffer(admLibVA::getDisplay(),
+    CHECK_VA_STATUS_BOOL(vaCreateBuffer(admLibVA::getDisplay(),
                                context_id,
                                VAEncPackedHeaderDataBufferType,
                                (length_in_bits + 7) / 8, 1, bs.getPointer(),
-                               &packed_sei_buf_id);
-    CHECK_VASTATUS(va_status,"vaCreateBuffer");
+                               &packed_sei_buf_id));
+    
 
 
     render_id[0] = packed_sei_header_param_buf_id;
     render_id[1] = packed_sei_buf_id;
-    va_status = vaRenderPicture(admLibVA::getDisplay(),context_id, render_id, 2);
-    CHECK_VASTATUS(va_status,"vaRenderPicture");
+    CHECK_VA_STATUS_BOOL( vaRenderPicture(admLibVA::getDisplay(),context_id, render_id, 2));
+    
     return true;
 }
 
@@ -516,13 +511,13 @@ bool ADM_vaEncodingContextH264::render_hrd(void)
     VAEncMiscParameterBuffer *misc_param;
     VAEncMiscParameterHRD *misc_hrd_param;
     
-    va_status = vaCreateBuffer(admLibVA::getDisplay(), context_id,
+    CHECK_VA_STATUS_BOOL(vaCreateBuffer(admLibVA::getDisplay(), context_id,
                    VAEncMiscParameterBufferType,
                    sizeof(VAEncMiscParameterBuffer) + sizeof(VAEncMiscParameterHRD),
                    1,
                    NULL, 
-                   &misc_parameter_hrd_buf_id);
-    CHECK_VASTATUS(va_status, "vaCreateBuffer");
+                   &misc_parameter_hrd_buf_id));
+
 
     vaMapBuffer(admLibVA::getDisplay(),
                 misc_parameter_hrd_buf_id,
@@ -539,15 +534,15 @@ bool ADM_vaEncodingContextH264::render_hrd(void)
     }
     vaUnmapBuffer(admLibVA::getDisplay(), misc_parameter_hrd_buf_id);
 
-    va_status = vaRenderPicture(admLibVA::getDisplay(),context_id, &misc_parameter_hrd_buf_id, 1);
-    CHECK_VASTATUS(va_status,"vaRenderPicture");;
+    CHECK_VA_STATUS_BOOL( vaRenderPicture(admLibVA::getDisplay(),context_id, &misc_parameter_hrd_buf_id, 1));
+    
 
     return true;
 }
 /**
  * 
  */
-void ADM_vaEncodingContextH264::render_packedslice()
+bool ADM_vaEncodingContextH264::render_packedslice()
 {
     VAEncPackedHeaderParameterBuffer packedheader_param_buffer;
     VABufferID packedslice_para_bufid, packedslice_data_bufid, render_id[2];
@@ -562,24 +557,25 @@ void ADM_vaEncodingContextH264::render_packedslice()
     packedheader_param_buffer.bit_length = length_in_bits;
     packedheader_param_buffer.has_emulation_bytes = 0;
 
-    va_status = vaCreateBuffer(admLibVA::getDisplay(),
+    CHECK_VA_STATUS_BOOL( vaCreateBuffer(admLibVA::getDisplay(),
                                context_id,
                                VAEncPackedHeaderParameterBufferType,
                                sizeof(packedheader_param_buffer), 1, &packedheader_param_buffer,
-                               &packedslice_para_bufid);
-    CHECK_VASTATUS(va_status,"vaCreateBuffer");
+                               &packedslice_para_bufid));
+    
 
-    va_status = vaCreateBuffer(admLibVA::getDisplay(),
+    CHECK_VA_STATUS_BOOL( vaCreateBuffer(admLibVA::getDisplay(),
                                context_id,
                                VAEncPackedHeaderDataBufferType,
                                (length_in_bits + 7) / 8, 1, bs.getPointer(),
-                               &packedslice_data_bufid);
-    CHECK_VASTATUS(va_status,"vaCreateBuffer");
+                               &packedslice_data_bufid));
+    
 
     render_id[0] = packedslice_para_bufid;
     render_id[1] = packedslice_data_bufid;
-    va_status = vaRenderPicture(admLibVA::getDisplay(),context_id, render_id, 2);
-    CHECK_VASTATUS(va_status,"vaRenderPicture");
+    CHECK_VA_STATUS_BOOL( vaRenderPicture(admLibVA::getDisplay(),context_id, render_id, 2));
+    
+    return true;
 }
 /**
  * 
@@ -635,12 +631,12 @@ bool ADM_vaEncodingContextH264::render_slice(void)
         config_attrib[enc_packed_header_idx].value & VA_ENC_PACKED_HEADER_SLICE)
         render_packedslice();
 
-    va_status = vaCreateBuffer(admLibVA::getDisplay(),context_id,VAEncSliceParameterBufferType,
-                               sizeof(slice_param),1,&slice_param,&slice_param_buf);
-    CHECK_VASTATUS(va_status,"vaCreateBuffer");;
+    CHECK_VA_STATUS_BOOL( vaCreateBuffer(admLibVA::getDisplay(),context_id,VAEncSliceParameterBufferType,
+                               sizeof(slice_param),1,&slice_param,&slice_param_buf));
+    
 
-    va_status = vaRenderPicture(admLibVA::getDisplay(),context_id, &slice_param_buf, 1);
-    CHECK_VASTATUS(va_status,"vaRenderPicture");
+    CHECK_VA_STATUS_BOOL( vaRenderPicture(admLibVA::getDisplay(),context_id, &slice_param_buf, 1));
+    
     
     return true;
 }
