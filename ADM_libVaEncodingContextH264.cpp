@@ -56,6 +56,7 @@
 #include "ADM_bitstream.h"
 #include "ADM_coreVideoEncoder.h"
 
+#define aprintf printf
 /**
  * 
  */
@@ -218,6 +219,7 @@ bool ADM_vaEncodingContextH264::encode(ADMImage *in, ADMBitstream *out)
 
     encoding2display_order(current_frame_encoding, intra_period, intra_idr_period, ip_period,
                            &current_frame_display, &current_frame_type);
+    aprintf("Encoding order = %d, display order=%d, frame type=%d\n",current_frame_encoding,current_frame_display,current_frame_type);
     if (current_frame_type == FRAME_IDR) 
     {
         numShortTerm = 0;
@@ -237,9 +239,11 @@ bool ADM_vaEncodingContextH264::encode(ADMImage *in, ADMBitstream *out)
             render_packedsequence();
             render_packedpicture();
         }
+        out->flags = AVI_KEY_FRAME;
     }
     else 
     {
+        out->flags = AVI_P_FRAME;
         render_picture();
     }
     render_slice();
@@ -259,14 +263,8 @@ bool ADM_vaEncodingContextH264::encode(ADMImage *in, ADMBitstream *out)
 
     update_ReferenceFrames();        
     current_frame_encoding++;
-
-    switch(current_frame_type)
-    {
-        case FRAME_IDR: out->flags = AVI_KEY_FRAME;break;
-        case FRAME_B: out->flags = AVI_B_FRAME;break;
-        default: out->flags = AVI_P_FRAME;break;
-    }
     out->pts=in->Pts;
+    out->dts=out->pts;
     return true;
 }
 // EOF

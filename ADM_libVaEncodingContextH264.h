@@ -150,8 +150,8 @@ protected:
 				unsigned int dpb_output_delay);
        
         bool build_packed_slice_buffer(vaBitstream *bs);
-         int build_packed_slice_buffer(unsigned char **header_buffer);
-         void encoding2display_order(    uint64_t encoding_order,int intra_period,    int intra_idr_period,int ip_period,    uint64_t *displaying_order,    int *frame_type);
+        int  build_packed_slice_buffer(unsigned char **header_buffer);
+        void encoding2display_order(    uint64_t encoding_order,int intra_period,    int intra_idr_period,int ip_period,    uint64_t *displaying_order,    int *frame_type);
         int update_ReferenceFrames(void);
         int update_RefPicList(void);
         int render_sequence(void);
@@ -163,5 +163,8 @@ protected:
         int render_hrd(void);
         void render_packedslice(void);
         int render_slice(void);
+        
+        int gop_start;
+        
 };
  

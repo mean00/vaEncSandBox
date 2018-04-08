@@ -422,8 +422,32 @@ bool ADM_vaEncodingContextH264::build_packed_pic_buffer(vaBitstream *bs)
  * displaying_order: displaying order
  * frame_type: frame type 
  */
-void ADM_vaEncodingContextH264::encoding2display_order(    uint64_t encoding_order,int intra_period,    int intra_idr_period,int ip_period,    uint64_t *displaying_order,    int *frame_type)
-{
+void ADM_vaEncodingContextH264::encoding2display_order(    uint64_t encoding_order,int intra_period,    int intra_idr_period,int ip_period,    
+                                                       uint64_t *displaying_order,    int *frame_type)
+{    
+    // simple use case, no delay encoding, only I(DR) PPPPPP
+    if(!encoding_order)
+    {
+        gop_start=0;        
+        *frame_type=FRAME_IDR;
+    }else
+    {
+        int offset;
+        offset=encoding_order-gop_start;
+        if(offset>=intra_idr_period)
+        {
+            gop_start=encoding_order;
+            offset=0;
+            *frame_type=FRAME_IDR;
+        }else
+        {
+            *frame_type=FRAME_P;
+        }     
+    }
+    *displaying_order=encoding_order;
+}
+        
+#if 0    
     int encoding_order_gop = 0;
 
     if (intra_period == 1) 
@@ -463,6 +487,7 @@ void ADM_vaEncodingContextH264::encoding2display_order(    uint64_t encoding_ord
 	*frame_type = FRAME_P;
 	*displaying_order = encoding_order + ip_period - 1;
     }
-}
+#endif
+    
 
 // EOF
