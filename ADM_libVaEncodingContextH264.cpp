@@ -84,7 +84,6 @@ ADM_vaEncodingContextH264::ADM_vaEncodingContextH264()
     
     current_IDR_display = 0;    
     numShortTerm = 0;
-    intra_period=30;
     MaxPicOrderCntLsb = (2<<8);
     Log2MaxFrameNum = 16;
     Log2MaxPicOrderCntLsb = 8;
@@ -217,8 +216,7 @@ bool ADM_vaEncodingContextH264::encode(ADMImage *in, ADMBitstream *out)
         return false;
     }
 
-    encoding2display_order(current_frame_encoding, intra_period, intra_idr_period, ip_period,
-                           &current_frame_display, &current_frame_type);
+    encoding2display_order(current_frame_encoding, intra_period,    &current_frame_display, &current_frame_type);
     aprintf("Encoding order = %d, display order=%d, frame type=%d\n",current_frame_encoding,current_frame_display,current_frame_type);
     if (current_frame_type == FRAME_IDR) 
     {

@@ -154,14 +154,12 @@ int init_va(void)
         switch (h264_profile) {
             case VAProfileH264Baseline:
                 printf("Use profile VAProfileH264Baseline\n");
-                ip_period = 1;
                 constraint_set_flag |= (1 << 0); /* Annex A.2.1 */
                 h264_entropy_mode = 0;
                 break;
             case VAProfileH264ConstrainedBaseline:
                 printf("Use profile VAProfileH264ConstrainedBaseline\n");
                 constraint_set_flag |= (1 << 0 | 1 << 1); /* Annex A.2.2 */
-                ip_period = 1;
                 break;
 
             case VAProfileH264Main:
@@ -176,7 +174,6 @@ int init_va(void)
             default:
                 printf("unknow profile. Set to Baseline");
                 h264_profile = VAProfileH264Baseline;
-                ip_period = 1;
                 constraint_set_flag |= (1 << 0); /* Annex A.2.1 */
                 break;
         }

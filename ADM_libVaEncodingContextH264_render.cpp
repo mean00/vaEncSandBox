@@ -201,7 +201,8 @@ int  ADM_vaEncodingContextH264::render_sequence(void)
     seq_param.picture_height_in_mbs = frame_height_mbaligned / 16;
     seq_param.bits_per_second = frame_bitrate;
 
-    seq_param.intra_period = intra_period;
+    seq_param.intra_period = 30; // Hardcoded ? 
+#warning fixme
     seq_param.intra_idr_period = intra_idr_period;
     seq_param.ip_period = ip_period;
 
