@@ -56,6 +56,12 @@
 #include "ADM_libVaEncodingContextH264.h"
 
 
+
+#define CHECK_VASTATUS(va_status,func)                                  \
+    if (va_status != VA_STATUS_SUCCESS) {                               \
+        fprintf(stderr,"%s:%s (%d) failed,exit\n", __func__, func, __LINE__); \
+        exit(1);                                                        \
+    }
 #define partition(ref, field, key, ascending)   \
     while (i <= j) {                            \
         if (ascending) {                        \
@@ -139,7 +145,7 @@ static void sort_two(VAPictureH264 ref[], int left, int right, unsigned int key,
  * 
  * @return 
  */
-  int ADM_vaEncodingContextH264::update_ReferenceFrames(void)
+  bool ADM_vaEncodingContextH264::update_ReferenceFrames(void)
 {
     int i;
     
@@ -156,14 +162,14 @@ static void sort_two(VAPictureH264 ref[], int left, int right, unsigned int key,
     
     if (current_frame_type != FRAME_B)
         current_frame_num++;
-    return 0;
+    return true;
 }
 
 /**
  * 
  * @return 
  */
-int ADM_vaEncodingContextH264::update_RefPicList(void)
+bool ADM_vaEncodingContextH264::update_RefPicList(void)
 {
     unsigned int current_poc = CurrentCurrPic.TopFieldOrderCnt;
     
@@ -182,14 +188,14 @@ int ADM_vaEncodingContextH264::update_RefPicList(void)
                  0, 1, 0);
     }
     
-    return 0;
+    return true;
 }
 
 /**
  * 
  * @return 
  */
-int  ADM_vaEncodingContextH264::render_sequence(void)
+bool  ADM_vaEncodingContextH264::render_sequence(void)
 {
     VABufferID seq_param_buf, rc_param_buf, misc_param_tmpbuf, render_id[2];
     VAStatus va_status;
@@ -266,7 +272,7 @@ int  ADM_vaEncodingContextH264::render_sequence(void)
         va_status = vaRenderPicture(admLibVA::getDisplay(),context_id, &misc_param_tmpbuf, 1);
     }
 
-    return 0;
+    return true;
 }
 /**
  * 
@@ -308,7 +314,7 @@ int ADM_vaEncodingContextH264::calc_poc(int pic_order_cnt_lsb)
  * 
  * @return 
  */
-int ADM_vaEncodingContextH264::render_picture(void)
+bool ADM_vaEncodingContextH264::render_picture(void)
 {
     VABufferID pic_param_buf;
     VAStatus va_status;
@@ -354,13 +360,13 @@ int ADM_vaEncodingContextH264::render_picture(void)
     va_status = vaRenderPicture(admLibVA::getDisplay(),context_id, &pic_param_buf, 1);
     CHECK_VASTATUS(va_status,"vaRenderPicture");
 
-    return 0;
+    return true;
 }
 /**
  * 
  * @return 
  */
-int ADM_vaEncodingContextH264::render_packedsequence(void)
+bool ADM_vaEncodingContextH264::render_packedsequence(void)
 {
     VAEncPackedHeaderParameterBuffer packedheader_param_buffer;
     VABufferID packedseq_para_bufid, packedseq_data_bufid, render_id[2];
@@ -394,14 +400,14 @@ int ADM_vaEncodingContextH264::render_packedsequence(void)
     render_id[1] = packedseq_data_bufid;
     va_status = vaRenderPicture(admLibVA::getDisplay(),context_id, render_id, 2);
     CHECK_VASTATUS(va_status,"vaRenderPicture");
-    return 0;
+    return true;
 }
 
 /**
  * 
  * @return 
  */
-int ADM_vaEncodingContextH264::render_packedpicture(void)
+bool ADM_vaEncodingContextH264::render_packedpicture(void)
 {
     VAEncPackedHeaderParameterBuffer packedheader_param_buffer;
     VABufferID packedpic_para_bufid, packedpic_data_bufid, render_id[2];
@@ -436,12 +442,12 @@ int ADM_vaEncodingContextH264::render_packedpicture(void)
     va_status = vaRenderPicture(admLibVA::getDisplay(),context_id, render_id, 2);
     CHECK_VASTATUS(va_status,"vaRenderPicture");
 
-    return 0;
+    return true;
 }
 /**
  * 
  */
-void ADM_vaEncodingContextH264::render_packedsei(void)
+bool ADM_vaEncodingContextH264::render_packedsei(void)
 {
     VAEncPackedHeaderParameterBuffer packed_header_param_buffer;
     VABufferID packed_sei_header_param_buf_id, packed_sei_buf_id, render_id[2];
@@ -496,14 +502,14 @@ void ADM_vaEncodingContextH264::render_packedsei(void)
     render_id[1] = packed_sei_buf_id;
     va_status = vaRenderPicture(admLibVA::getDisplay(),context_id, render_id, 2);
     CHECK_VASTATUS(va_status,"vaRenderPicture");
-    return;
+    return true;
 }
 
 /**
  * 
  * @return 
  */
-int ADM_vaEncodingContextH264::render_hrd(void)
+bool ADM_vaEncodingContextH264::render_hrd(void)
 {
     VABufferID misc_parameter_hrd_buf_id;
     VAStatus va_status;
@@ -536,7 +542,7 @@ int ADM_vaEncodingContextH264::render_hrd(void)
     va_status = vaRenderPicture(admLibVA::getDisplay(),context_id, &misc_parameter_hrd_buf_id, 1);
     CHECK_VASTATUS(va_status,"vaRenderPicture");;
 
-    return 0;
+    return true;
 }
 /**
  * 
@@ -579,7 +585,7 @@ void ADM_vaEncodingContextH264::render_packedslice()
  * 
  * @return 
  */
-int ADM_vaEncodingContextH264::render_slice(void)
+bool ADM_vaEncodingContextH264::render_slice(void)
 {
     VABufferID slice_param_buf;
     VAStatus va_status;
@@ -636,7 +642,7 @@ int ADM_vaEncodingContextH264::render_slice(void)
     va_status = vaRenderPicture(admLibVA::getDisplay(),context_id, &slice_param_buf, 1);
     CHECK_VASTATUS(va_status,"vaRenderPicture");
     
-    return 0;
+    return true;
 }
 
 // EOF

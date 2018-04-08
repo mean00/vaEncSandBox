@@ -148,9 +148,9 @@ bool ADM_vaEncodingContextH264::setup( int width, int height, std::vector<ADM_va
         frame_height_mbaligned=(height+15)&~15;
         int  i;
 
-        va_status = vaCreateConfig(admLibVA::getDisplay(), h264_profile, VAEntrypointEncSlice,
-                &config_attrib[0], config_attrib_num, &config_id);
-        CHECK_VASTATUS(va_status, "vaCreateConfig");
+        CHECK_VA_STATUS_BOOL( vaCreateConfig(admLibVA::getDisplay(), h264_profile, VAEntrypointEncSlice,
+                &config_attrib[0], config_attrib_num, &config_id));
+        
 
         int n=knownSurfaces.size();                    
         VASurfaceID *tmp_surfaceId = new VASurfaceID[n];
@@ -160,12 +160,12 @@ bool ADM_vaEncodingContextH264::setup( int width, int height, std::vector<ADM_va
         }
 
         /* Create a context for this encode pipe */
-        va_status = vaCreateContext(admLibVA::getDisplay(), config_id,
+        CHECK_VA_STATUS_BOOL( vaCreateContext(admLibVA::getDisplay(), config_id,
                                     frame_width_mbaligned, frame_height_mbaligned,
                                     VA_PROGRESSIVE,
                                     tmp_surfaceId, n,
-                                    &context_id);
-        CHECK_VASTATUS(va_status, "vaCreateContext");    
+                                    &context_id));
+        
 
         delete [] tmp_surfaceId;
         tmp_surfaceId=NULL;
@@ -226,8 +226,8 @@ bool ADM_vaEncodingContextH264::encode(ADMImage *in, ADMBitstream *out)
     }
     int current_slot= (current_frame_display % SURFACE_NUM);
 
-    VAStatus va_status = vaBeginPicture(admLibVA::getDisplay(), context_id, vaSurface[current_slot]->surface);
-    CHECK_VASTATUS(va_status,"vaBeginPicture");
+    CHECK_VA_STATUS_BOOL(vaBeginPicture(admLibVA::getDisplay(), context_id, vaSurface[current_slot]->surface));
+    
     if (current_frame_type == FRAME_IDR) 
     {
         render_sequence();
@@ -245,14 +245,14 @@ bool ADM_vaEncodingContextH264::encode(ADMImage *in, ADMBitstream *out)
         render_picture();
     }
     render_slice();
-    va_status = vaEndPicture(admLibVA::getDisplay(),context_id);
-    CHECK_VASTATUS(va_status,"vaEndPicture");;
+    CHECK_VA_STATUS_BOOL( vaEndPicture(admLibVA::getDisplay(),context_id));
+    
 
     //--    
     int display_order=current_frame_display;
     unsigned long long encode_order=current_frame_encoding;
-    va_status = vaSyncSurface(admLibVA::getDisplay(), vaSurface[display_order % SURFACE_NUM]->surface);
-    CHECK_VASTATUS(va_status,"vaSyncSurface");
+    CHECK_VA_STATUS_BOOL( vaSyncSurface(admLibVA::getDisplay(), vaSurface[display_order % SURFACE_NUM]->surface));
+    
 
     out->len=vaEncodingBuffers[display_order % SURFACE_NUM]->read(out->data, out->bufferSize);
     ADM_assert(out->len>=0);

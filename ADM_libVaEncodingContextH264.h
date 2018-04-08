@@ -150,19 +150,18 @@ protected:
 				unsigned int dpb_output_delay);
        
         bool build_packed_slice_buffer(vaBitstream *bs);
-        int  build_packed_slice_buffer(unsigned char **header_buffer);
         void encoding2display_order(    uint64_t encoding_order, int intra_idr_period, uint64_t *displaying_order,    int *frame_type);
-        int update_ReferenceFrames(void);
-        int update_RefPicList(void);
-        int render_sequence(void);
-        int calc_poc(int pic_order_cnt_lsb);
-        int render_picture(void);
-        int render_packedsequence(void);
-        int render_packedpicture(void);
-        void render_packedsei(void);
-        int render_hrd(void);
+        bool update_ReferenceFrames(void);
+        bool update_RefPicList(void);
+        bool render_sequence(void);
+        int  calc_poc(int pic_order_cnt_lsb);
+        bool render_picture(void);
+        bool render_packedsequence(void);
+        bool render_packedpicture(void);
+        bool render_packedsei(void);
+        bool render_hrd(void);
         void render_packedslice(void);
-        int render_slice(void);
+        bool render_slice(void);
         
         int gop_start;
         

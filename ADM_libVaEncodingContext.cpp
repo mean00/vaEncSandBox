@@ -57,7 +57,7 @@
 
 
 
-static int  init_va(void);
+static bool  init_va(void);
 static bool initDone=false;
 
 namespace ADM_VA_Global
@@ -89,7 +89,7 @@ ADM_vaEncodingContext *ADM_vaEncodingContext::allocate(int codec, int alignedWid
 {
     if(!initDone)
     {
-        if(init_va())
+        if(!init_va())
         {
             return NULL;
         }
@@ -113,7 +113,7 @@ ADM_vaEncodingContext *ADM_vaEncodingContext::allocate(int codec, int alignedWid
  * frame_type: frame type 
  */
 
-int init_va(void)
+bool init_va(void)
 {
     VAProfile profile_list[]={VAProfileH264High,VAProfileH264Main,VAProfileH264Baseline,VAProfileH264ConstrainedBaseline};
     VAEntrypoint *entrypoints;
@@ -126,8 +126,8 @@ int init_va(void)
     num_entrypoints = vaMaxNumEntrypoints(admLibVA::getDisplay());
     entrypoints = (VAEntrypoint*) malloc(num_entrypoints * sizeof(*entrypoints));
     if (!entrypoints) {
-        fprintf(stderr, "error: failed to initialize VA entrypoints array\n");
-        exit(1);
+        ADM_warning( "error: failed to initialize VA entrypoints array\n");
+        return false;
     }
 
     /* use the highest profile */
@@ -148,8 +148,8 @@ int init_va(void)
     }
     
     if (support_encode == 0) {
-        printf("Can't find VAEntrypointEncSlice for H264 profiles\n");
-        exit(1);
+        ADM_warning("Can't find VAEntrypointEncSlice for H264 profiles\n");
+        return false;
     } else {
         switch (h264_profile) {
             case VAProfileH264Baseline:
@@ -183,22 +183,23 @@ int init_va(void)
     for (i = 0; i < VAConfigAttribTypeMax; i++)
         attrib[i].type = (VAConfigAttribType)i;
 
-    va_status = vaGetConfigAttributes(admLibVA::getDisplay(), h264_profile, VAEntrypointEncSlice,
-                                      &attrib[0], VAConfigAttribTypeMax);
-    CHECK_VASTATUS(va_status, "vaGetConfigAttributes");
+    CHECK_VA_STATUS_BOOL(vaGetConfigAttributes(admLibVA::getDisplay(), h264_profile, VAEntrypointEncSlice,
+                                      &attrib[0], VAConfigAttribTypeMax));
+    
     /* check the interested configattrib */
     if ((attrib[VAConfigAttribRTFormat].value & VA_RT_FORMAT_YUV420) == 0) {
-        printf("Not find desired YUV420 RT format\n");
-        exit(1);
+        ADM_warning("Not find desired YUV420 RT format\n");
+        return false;
     } else {
         config_attrib[config_attrib_num].type = VAConfigAttribRTFormat;
         config_attrib[config_attrib_num].value = VA_RT_FORMAT_YUV420;
         config_attrib_num++;
     }
     
-  
+#if 1
 
-    if (attrib[VAConfigAttribEncPackedHeaders].value != VA_ATTRIB_NOT_SUPPORTED) {
+    if (attrib[VAConfigAttribEncPackedHeaders].value != VA_ATTRIB_NOT_SUPPORTED) 
+    {
         int tmp = attrib[VAConfigAttribEncPackedHeaders].value;
 
         printf("Support VAConfigAttribEncPackedHeaders\n");
@@ -230,6 +231,7 @@ int init_va(void)
         enc_packed_header_idx = config_attrib_num;
         config_attrib_num++;
     }
+#endif    
 
     if (attrib[VAConfigAttribEncInterlaced].value != VA_ATTRIB_NOT_SUPPORTED) {
         int tmp = attrib[VAConfigAttribEncInterlaced].value;
@@ -277,5 +279,5 @@ int init_va(void)
     }
 
     free(entrypoints);
-    return 0;
+    return true;
 }

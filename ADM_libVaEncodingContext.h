@@ -42,13 +42,8 @@
 #pragma once
 
 
-#define CHECK_VASTATUS(va_status,func)                                  \
-    if (va_status != VA_STATUS_SUCCESS) {                               \
-        fprintf(stderr,"%s:%s (%d) failed,exit\n", __func__, func, __LINE__); \
-        exit(1);                                                        \
-    }
-
-
+#define CHECK_VA_STATUS_BOOL(x)     {VAStatus status=x; if(status!=VA_STATUS_SUCCESS) \
+            { ADM_warning("%s failed at line %d function %s, err code=%d\n",#x,__LINE__,__func__,(int)status);return false;}}
 #include <vector>
 class ADMImage;
 class ADM_vaSurface;
