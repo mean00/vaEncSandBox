@@ -78,7 +78,7 @@ ADM_vaEncodingContextH264::ADM_vaEncodingContextH264()
     memset(&pic_param, 0, sizeof(pic_param));
     memset(&slice_param, 0, sizeof(slice_param));
     
-    intra_idr_period = 60;
+
     num_ref_frames = 2;
     
     
@@ -89,10 +89,9 @@ ADM_vaEncodingContextH264::ADM_vaEncodingContextH264()
 
 
     // RC
-    frame_bitrate = 0;
     initial_qp = 26;
     minimal_qp = 0;
-    rc_mode = VA_RC_CQP;
+    rc_mode = VA_RC_CBR; //VA_RC_CQP;
 
 }
 /**
@@ -143,8 +142,18 @@ bool ADM_vaEncodingContextH264::setup( int width, int height, std::vector<ADM_va
         int  i;
         
         // marshall new config...
-        CHECK_VA_STATUS_BOOL( vaCreateConfig(admLibVA::getDisplay(), h264_profile, VAEntrypointEncSlice,
-                newAttributes.getPointer(), newAttributes.count(), &config_id));
+        
+        // copy common part
+        int nAttrib=newAttributes.count();
+        VAConfigAttrib *ttrib=new VAConfigAttrib[nAttrib+1];
+        memcpy(ttrib,newAttributes.getPointer(),nAttrib*sizeof(VAConfigAttrib));
+        
+        // add rate control, it is per instance
+        ttrib[nAttrib].type=VAConfigAttribRateControl;
+        ttrib[nAttrib].value=VA_RC_CBR;
+                
+        
+        CHECK_VA_STATUS_BOOL( vaCreateConfig(admLibVA::getDisplay(), h264_profile, VAEntrypointEncSlice, ttrib, nAttrib+1, &config_id));
         
 
         int n=knownSurfaces.size();                    
@@ -161,7 +170,7 @@ bool ADM_vaEncodingContextH264::setup( int width, int height, std::vector<ADM_va
                                     tmp_surfaceId, n,
                                     &context_id));
         
-
+        delete [] ttrib;
         delete [] tmp_surfaceId;
         tmp_surfaceId=NULL;
 
@@ -211,7 +220,7 @@ bool ADM_vaEncodingContextH264::encode(ADMImage *in, ADMBitstream *out)
         return false;
     }
 
-    encoding2display_order(current_frame_encoding, intra_idr_period,    &current_frame_type);
+    encoding2display_order(current_frame_encoding, vaH264Settings.IntraPeriod,    &current_frame_type);
     aprintf("Encoding order = %d,  frame type=%d\n",(int)current_frame_encoding,current_frame_type);
     if (current_frame_type == FRAME_IDR) 
     {

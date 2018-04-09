@@ -155,8 +155,8 @@ void ADM_vaEncodingContextH264::sps_rbsp(vaBitstream *bs)
             bs->put_ui(4, 4); /* bit_rate_scale */
             bs->put_ui(6, 4); /* cpb_size_scale */
 
-            bs->put_ue(frame_bitrate - 1); /* bit_rate_value_minus1[0] */
-            bs->put_ue(frame_bitrate * 8 - 1); /* cpb_size_value_minus1[0] */
+            bs->put_ue(vaH264Settings.BitrateKbps*1000 - 1); /* bit_rate_value_minus1[0] */
+            bs->put_ue(vaH264Settings.BitrateKbps * 8000 - 1); /* cpb_size_value_minus1[0] */
             bs->put_ui(1, 1); /* cbr_flag[0] */
 
             bs->put_ui(23, 5); /* initial_cpb_removal_delay_length_minus1 */

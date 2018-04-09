@@ -209,11 +209,11 @@ bool ADM_vaEncodingContextH264::render_sequence(void)
     seq_param.level_idc = 41 /*SH_LEVEL_3*/;
     seq_param.picture_width_in_mbs = frame_width_mbaligned / 16;
     seq_param.picture_height_in_mbs = frame_height_mbaligned / 16;
-    seq_param.bits_per_second = frame_bitrate;
+    seq_param.bits_per_second = VA_BITRATE;
 
     seq_param.intra_period = 30; // Hardcoded ? 
 #warning fixme
-    seq_param.intra_idr_period = intra_idr_period;
+    seq_param.intra_idr_period = vaH264Settings.IntraPeriod;
     seq_param.ip_period = ip_period;
 #warning fixme too
     seq_param.max_num_ref_frames = num_ref_frames;
@@ -250,7 +250,7 @@ bool ADM_vaEncodingContextH264::render_sequence(void)
     misc_param->type = VAEncMiscParameterTypeRateControl;
     misc_rate_ctrl = (VAEncMiscParameterRateControl *) misc_param->data;
     memset(misc_rate_ctrl, 0, sizeof (*misc_rate_ctrl));
-    misc_rate_ctrl->bits_per_second = frame_bitrate;
+    misc_rate_ctrl->bits_per_second = VA_BITRATE;
     misc_rate_ctrl->target_percentage = 66;
     misc_rate_ctrl->window_size = 1000;
     misc_rate_ctrl->initial_qp = initial_qp;
@@ -466,7 +466,7 @@ bool ADM_vaEncodingContextH264::render_packedsei(void)
     int i_cpb_removal_delay, i_dpb_output_delay_length, i_cpb_removal_delay_length;
 
     /* it comes for the bps defined in SPS */
-    target_bit_rate = frame_bitrate;
+    target_bit_rate = VA_BITRATE;
     init_cpb_size = (target_bit_rate * 8) >> 10;
     i_initial_cpb_removal_delay = init_cpb_size * 0.5 * 1024 / target_bit_rate * 90000;
 
@@ -537,10 +537,10 @@ bool ADM_vaEncodingContextH264::render_hrd(void)
     misc_param->type = VAEncMiscParameterTypeHRD;
     misc_hrd_param = (VAEncMiscParameterHRD *) misc_param->data;
 
-    if (frame_bitrate > 0)
+    if (VA_BITRATE > 0)
     {
-        misc_hrd_param->initial_buffer_fullness = frame_bitrate * 1024 * 4;
-        misc_hrd_param->buffer_size = frame_bitrate * 1024 * 8;
+        misc_hrd_param->initial_buffer_fullness = VA_BITRATE* 1024 * 4;
+        misc_hrd_param->buffer_size = VA_BITRATE * 1024 * 8;
     }
     else
     {

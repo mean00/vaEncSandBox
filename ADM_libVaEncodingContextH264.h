@@ -57,7 +57,9 @@
 #include "vaBitstream.h"
 #include "vaDefines.h"
 #include "vaenc_settings.h"
-extern vaconf_settings vaSettings;
+extern vaconf_settings vaH264Settings;
+
+#define VA_BITRATE (vaH264Settings.BitrateKbps*1000)
 /**
  */
 //-- Global configuration --
@@ -112,12 +114,8 @@ protected:
           int gop_start;
           uint64_t current_frame_encoding;
           
-          //--
-          
-          int intra_idr_period;
-          
           // -- RC --
-          unsigned int frame_bitrate;
+          
           int initial_qp;
           int minimal_qp;
           int rc_mode;
