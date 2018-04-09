@@ -347,9 +347,7 @@ bool ADM_vaEncodingContextH264::build_packed_pic_buffer(vaBitstream *bs)
  */
 bool ADM_vaEncodingContextH264::build_packed_seq_buffer(vaBitstream *bs)
 {
-
     bs->startCodePrefix();
-
     bs->nalHeader(NAL_REF_IDC_HIGH, NAL_SPS);
     sps_rbsp(bs);
     bs->stop();
@@ -456,7 +454,6 @@ bool ADM_vaEncodingContextH264::build_packed_slice_buffer(vaBitstream *bs)
         assert(IS_B_SLICE(slice_param.slice_type));
         bs->nalHeader(is_ref ? NAL_REF_IDC_LOW : NAL_REF_IDC_NONE, NAL_NON_IDR);
     }
-
     slice_header(bs);
     bs->stop();
     return true;
