@@ -142,8 +142,6 @@ bool ADM_vaEncodingContextH264::setup( int width, int height, std::vector<ADM_va
         frame_height_mbaligned=(height+15)&~15;
         int  i;
         
-
-        
         // marshall new config...
         CHECK_VA_STATUS_BOOL( vaCreateConfig(admLibVA::getDisplay(), h264_profile, VAEntrypointEncSlice,
                 newAttributes.getPointer(), newAttributes.count(), &config_id));
@@ -206,7 +204,7 @@ bool ADM_vaEncodingContextH264::setup( int width, int height, std::vector<ADM_va
  * @return 
  */
 bool ADM_vaEncodingContextH264::encode(ADMImage *in, ADMBitstream *out)
-    {
+{
     if(!vaSurface[current_frame_encoding%SURFACE_NUM]->fromAdmImage(in))
     {
         ADM_warning("Failed to upload image to vaSurface\n");
