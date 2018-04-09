@@ -65,7 +65,7 @@ ADM_vaEncodingContextH264::ADM_vaEncodingContextH264()
     context_id=VA_INVALID;
     config_id=VA_INVALID;
     
-    current_frame_encoding=current_frame_display=current_frame_num=0;
+    current_frame_encoding=0;
 
     for(int i=0;i<VA_ENC_NB_SURFACE;i++)
         vaEncodingBuffers[i]=NULL;;
@@ -82,24 +82,18 @@ ADM_vaEncodingContextH264::ADM_vaEncodingContextH264()
     num_ref_frames = 2;
     
     
-    current_IDR_display = 0;    
     numShortTerm = 0;
     MaxPicOrderCntLsb = (2<<8);
     Log2MaxFrameNum = 16;
     Log2MaxPicOrderCntLsb = 8;
 
 
-
-    frame_rate = 30;
-    frame_count = 60;
+    // RC
     frame_bitrate = 0;
-    frame_slices = 1;
-    frame_size = 0;
     initial_qp = 26;
     minimal_qp = 0;
     rc_mode = VA_RC_CQP;
-    misc_priv_type = 0;
-    misc_priv_value = 0;   
+
 }
 /**
  * 
@@ -219,15 +213,13 @@ bool ADM_vaEncodingContextH264::encode(ADMImage *in, ADMBitstream *out)
         return false;
     }
 
-    encoding2display_order(current_frame_encoding, intra_period,    &current_frame_display, &current_frame_type);
-    aprintf("Encoding order = %d, display order=%d, frame type=%d\n",current_frame_encoding,current_frame_display,current_frame_type);
+    encoding2display_order(current_frame_encoding, intra_idr_period,    &current_frame_type);
+    aprintf("Encoding order = %d,  frame type=%d\n",(int)current_frame_encoding,current_frame_type);
     if (current_frame_type == FRAME_IDR) 
     {
         numShortTerm = 0;
-        current_frame_num = 0;
-        current_IDR_display = current_frame_display;
     }
-    int current_slot= (current_frame_display % SURFACE_NUM);
+    int current_slot= (current_frame_encoding % SURFACE_NUM);
 
     CHECK_VA_STATUS_BOOL(vaBeginPicture(admLibVA::getDisplay(), context_id, vaSurface[current_slot]->surface));
     
@@ -252,12 +244,11 @@ bool ADM_vaEncodingContextH264::encode(ADMImage *in, ADMBitstream *out)
     
 
     //--    
-    int display_order=current_frame_display;
-    unsigned long long encode_order=current_frame_encoding;
-    CHECK_VA_STATUS_BOOL( vaSyncSurface(admLibVA::getDisplay(), vaSurface[display_order % SURFACE_NUM]->surface));
+    
+    CHECK_VA_STATUS_BOOL( vaSyncSurface(admLibVA::getDisplay(), vaSurface[current_frame_encoding % SURFACE_NUM]->surface));
     
 
-    out->len=vaEncodingBuffers[display_order % SURFACE_NUM]->read(out->data, out->bufferSize);
+    out->len=vaEncodingBuffers[current_frame_encoding % SURFACE_NUM]->read(out->data, out->bufferSize);
     ADM_assert(out->len>=0);
 
     /* reload a new frame data */

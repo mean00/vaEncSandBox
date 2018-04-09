@@ -57,21 +57,24 @@
 #include "vaBitstream.h"
 #include "vaDefines.h"
 
-
+/**
+ */
 //-- Global configuration --
 namespace ADM_VA_Global
 {
   
-  extern VAProfile      h264_profile ;
-  extern int            ip_period;
-  extern vaSetAttributes newAttributes;
-  extern int h264_packedheader ; /* support pack header? */
-  extern int h264_maxref ;
+  extern VAProfile          h264_profile ;
+  extern int                ip_period;
+  extern vaSetAttributes    newAttributes;
+  extern int                h264_packedheader ; /* support pack header? */
+  extern int                h264_maxref ;
 };
 using namespace ADM_VA_Global;
 
 
-
+/**
+ * 
+ */
 class ADM_vaEncodingContextH264 : public ADM_vaEncodingContext
 {
 public:
@@ -81,16 +84,11 @@ public:
     virtual bool    encode(ADMImage *in, ADMBitstream *out);
     
 protected:    
-    
-
 //-- Per instance configuration --
           VAConfigID config_id;
           VAContextID context_id;
-
-          unsigned long long current_IDR_display;
-
           int current_frame_type;
-          int intra_idr_period;
+          
           VAEncSequenceParameterBufferH264 seq_param;
           VAEncPictureParameterBufferH264 pic_param;
           VAEncSliceParameterBufferH264 slice_param;
@@ -110,20 +108,21 @@ protected:
           int frame_height;
           int frame_width_mbaligned;
           int frame_height_mbaligned;
-          int frame_rate;
-          unsigned int frame_count;
+          int gop_start;
+          uint64_t current_frame_encoding;
+          
+          //--
+          
+          int intra_idr_period;
+          
+          // -- RC --
           unsigned int frame_bitrate;
-          unsigned int frame_slices;
-          double frame_size = 0;
           int initial_qp;
           int minimal_qp;
           int rc_mode;
-          uint64_t current_frame_encoding,current_frame_display,current_frame_num;
-          int intra_period;
-
-          int misc_priv_type ;
-          int misc_priv_value;
-
+          
+          
+          //--
           ADM_vaEncodingBuffers *vaEncodingBuffers[VA_ENC_NB_SURFACE];
           ADM_vaSurface *vaSurface[VA_ENC_NB_SURFACE];
           ADM_vaSurface *vaRefSurface[VA_ENC_NB_SURFACE];
@@ -143,7 +142,7 @@ protected:
 				unsigned int dpb_output_delay);
        
         bool build_packed_slice_buffer(vaBitstream *bs);
-        void encoding2display_order(    uint64_t encoding_order, int intra_idr_period, uint64_t *displaying_order,    int *frame_type);
+        void encoding2display_order(    uint64_t encoding_order, int intra_idr_period,  int *frame_type);
         bool update_ReferenceFrames(void);
         bool update_RefPicList(void);
         bool render_sequence(void);
@@ -154,9 +153,7 @@ protected:
         bool render_packedsei(void);
         bool render_hrd(void);
         bool render_packedslice(void);
-        bool render_slice(void);
-        
-        int gop_start;
-        
+        bool render_slice(void);        
 };
+// EOF 
  
