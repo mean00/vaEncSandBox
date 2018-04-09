@@ -18,18 +18,38 @@
 #include "ADM_default.h"
 #include "ADM_libvaEncoder.h"
 #include "ADM_coreVideoEncoderInternal.h"
-
-void resetConfigurationData() {}
+#include "vaenc_settings.h"
+extern "C"
+{
+#include "vaenc_settings_desc.cpp"
+}
+extern bool     vaEncConfigure(void);
+vaconf_settings vaSettings;
+/**
+ * 
+ */
+void resetConfigurationData()
+{
+    static const  vaconf_settings defaultConf = {10000,100};
+    memcpy(&vaSettings, &defaultConf, sizeof(vaSettings));
+}
 
 ADM_DECLARE_VIDEO_ENCODER_PREAMBLE(ADM_libvaEncoder);
 ADM_DECLARE_VIDEO_ENCODER_MAIN("LibVaEncoder (HW)",
                                "Mpeg4 AVC (VA/HW)",
                                "Simple Libva Encoder (c) 2018 Mean",
-                                NULL, // No configuration
+                                vaEncConfigure, // No configuration
                                 ADM_UI_ALL,
                                 1,0,0,
-                                NULL, // conf template
-                                NULL, // conf var
+                                vaconf_settings_param, // conf template
+                                &vaSettings, // conf var
                                 NULL,NULL
 );
-
+/**
+ * 
+ * @return 
+ */
+bool x264Configure()
+{
+    return false;
+}
