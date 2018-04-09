@@ -49,7 +49,7 @@ ADM_DECLARE_VIDEO_ENCODER_MAIN("LibVaEncoder (HW)",
  * 
  * @return 
  */
-bool x264Configure()
+bool vaEncConfigure()
 {
     return false;
 }

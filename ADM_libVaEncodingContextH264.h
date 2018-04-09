@@ -56,7 +56,8 @@
 #include "ADM_libVaEncodingContext.h"
 #include "vaBitstream.h"
 #include "vaDefines.h"
-
+#include "vaenc_settings.h"
+extern vaconf_settings vaSettings;
 /**
  */
 //-- Global configuration --
