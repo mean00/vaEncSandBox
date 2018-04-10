@@ -84,6 +84,7 @@ ADD_VIDEO_ENCODER(ADM_ve_libva
                 vaBitstream.cpp
                 ADM_libVaEncodingContextH264_misc.cpp
                 ADM_libVaEncodingContextH264_render.cpp
+                ADM_libVaEncodingContextH264_packed.cpp
                 ADM_libVaEncodingContext.cpp
                 ADM_libvaEncoder.cpp  
                 ADM_libVaEncodingContextH264.cpp

@@ -7,10 +7,6 @@
     email                : fixounet@free.fr
  * 
  * 
- * Ko :  00 00 00 01 41 e0 00 40 43 ff c6 09 40 21 aa a6
- * Ok :  00 00 1c ef 41 e0 00 40 43 ff c6 09 40 21 aa a6
- * PPS/SPS      01 64 10 29 ff e1 00 0c 67 64 10 29 ac 1b 29 00  a0 3d 90 00 01 00 09 68 ee 3c 30 00 00 03 00 01
- c
 
  ***************************************************************************/
 
@@ -57,7 +53,7 @@
  ***************************************************************************/
 #pragma once
 
-#define ADM_VA_USE_MP4_FORMAT  // i.e. TS/h264 else Annex B/AVC1
+#define ADM_VA_USE_MP4_FORMAT  // i.e. TS/h264 else MP4/AVC1
 
 /**
  * 
