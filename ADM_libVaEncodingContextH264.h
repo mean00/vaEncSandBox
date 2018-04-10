@@ -154,8 +154,8 @@ protected:
         int  calc_poc(int pic_order_cnt_lsb);
         // MP4
         bool render_sequence(void);
-        bool render_picture(void);
-        bool render_slice(void);   
+        bool render_picture(int frameNumber,int frameType);
+        bool render_slice(int frameNumber,int frameType);   
         void slice_header(vaBitstream *bs);
         
         // Annex B
@@ -169,7 +169,7 @@ protected:
 
         //
         void fillSeqParam();
-        void fillPPS();
+        void fillPPS(int frameNumber, int frameType);
         
 };
 // EOF 

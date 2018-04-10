@@ -373,4 +373,47 @@ bool ADM_vaEncodingContextH264::render_packedsequence(void)
     return true;
 }
 
+
+/**
+ * 
+ * @return 
+ */
+bool ADM_vaEncodingContextH264::render_hrd(void)
+{
+    VABufferID misc_parameter_hrd_buf_id;
+    VAStatus va_status;
+    VAEncMiscParameterBuffer *misc_param;
+    VAEncMiscParameterHRD *misc_hrd_param;
+
+    CHECK_VA_STATUS_BOOL(vaCreateBuffer(admLibVA::getDisplay(), context_id,
+                                        VAEncMiscParameterBufferType,
+                                        sizeof (VAEncMiscParameterBuffer) + sizeof (VAEncMiscParameterHRD),
+                                        1,
+                                        NULL,
+                                        &misc_parameter_hrd_buf_id));
+
+
+    vaMapBuffer(admLibVA::getDisplay(),
+                misc_parameter_hrd_buf_id,
+                (void **) &misc_param);
+    misc_param->type = VAEncMiscParameterTypeHRD;
+    misc_hrd_param = (VAEncMiscParameterHRD *) misc_param->data;
+
+    if (VA_BITRATE > 0)
+    {
+        misc_hrd_param->initial_buffer_fullness = VA_BITRATE* 1024 * 4;
+        misc_hrd_param->buffer_size = VA_BITRATE * 1024 * 8;
+    }
+    else
+    {
+        misc_hrd_param->initial_buffer_fullness = 0;
+        misc_hrd_param->buffer_size = 0;
+    }
+    vaUnmapBuffer(admLibVA::getDisplay(), misc_parameter_hrd_buf_id);
+
+    CHECK_VA_STATUS_BOOL(vaRenderPicture(admLibVA::getDisplay(), context_id, &misc_parameter_hrd_buf_id, 1));
+
+
+    return true;
+}
 // EOF

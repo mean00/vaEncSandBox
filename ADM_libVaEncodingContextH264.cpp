@@ -224,7 +224,7 @@ bool ADM_vaEncodingContextH264::generateExtraData(int *size, uint8_t **data)
     fillSeqParam();
     sps_rbsp(&sps);
     
-    fillPPS();
+    fillPPS(0,FRAME_IDR);
     pps_rbsp(&pps);
     
     sps.stop();
@@ -316,7 +316,7 @@ bool ADM_vaEncodingContextH264::encode(ADMImage *in, ADMBitstream *out)
         out->flags = AVI_KEY_FRAME;
     }else
          out->flags = AVI_P_FRAME;
-    render_picture(); 
+    render_picture(current_frame_encoding,current_frame_type); 
     render_slice();
 #endif    
     CHECK_VA_STATUS_BOOL( vaEndPicture(admLibVA::getDisplay(),context_id));
