@@ -149,11 +149,11 @@ static void sort_two(VAPictureH264 ref[], int left, int right, unsigned int key,
  * 
  * @return 
  */
-bool ADM_vaEncodingContextH264::update_ReferenceFrames(void)
+bool ADM_vaEncodingContextH264::update_ReferenceFrames(int frameType)
 {
     int i;
 
-    if (current_frame_type == FRAME_B)
+    if (frameType == FRAME_B)
         return 0;
 
     CurrentCurrPic.flags = VA_PICTURE_H264_SHORT_TERM_REFERENCE;
@@ -171,17 +171,17 @@ bool ADM_vaEncodingContextH264::update_ReferenceFrames(void)
  * 
  * @return 
  */
-bool ADM_vaEncodingContextH264::update_RefPicList(void)
+bool ADM_vaEncodingContextH264::update_RefPicList(int frameType)
 {
     unsigned int current_poc = CurrentCurrPic.TopFieldOrderCnt;
 
-    if (current_frame_type == FRAME_P)
+    if (frameType == FRAME_P)
     {
         memcpy(RefPicList0_P, ReferenceFrames, numShortTerm * sizeof (VAPictureH264));
         sort_one(RefPicList0_P, 0, numShortTerm - 1, 0, 1);
     }
 
-    if (current_frame_type == FRAME_B)
+    if (frameType == FRAME_B)
     {
         memcpy(RefPicList0_B, ReferenceFrames, numShortTerm * sizeof (VAPictureH264));
         sort_two(RefPicList0_B, 0, numShortTerm - 1, current_poc, 0,
@@ -278,13 +278,13 @@ bool ADM_vaEncodingContextH264::render_sequence(void)
  * @param pic_order_cnt_lsb
  * @return 
  */
-int ADM_vaEncodingContextH264::calc_poc(int pic_order_cnt_lsb)
+int ADM_vaEncodingContextH264::calc_poc(int pic_order_cnt_lsb,int frameType)
 {
     static int PicOrderCntMsb_ref = 0, pic_order_cnt_lsb_ref = 0;
     int prevPicOrderCntMsb, prevPicOrderCntLsb;
     int PicOrderCntMsb, TopFieldOrderCnt;
 
-    if (current_frame_type == FRAME_IDR)
+    if (frameType == FRAME_IDR)
         prevPicOrderCntMsb = prevPicOrderCntLsb = 0;
     else
     {
@@ -303,7 +303,7 @@ int ADM_vaEncodingContextH264::calc_poc(int pic_order_cnt_lsb)
 
     TopFieldOrderCnt = PicOrderCntMsb + pic_order_cnt_lsb;
 
-    if (current_frame_type != FRAME_B)
+    if (frameType != FRAME_B)
     {
         PicOrderCntMsb_ref = PicOrderCntMsb;
         pic_order_cnt_lsb_ref = pic_order_cnt_lsb;
@@ -320,7 +320,7 @@ void ADM_vaEncodingContextH264::fillPPS(int frameNumber, int frameType)
     pic_param.CurrPic.picture_id = vaRefSurface[current_slot]->surface;
     pic_param.CurrPic.frame_idx = frameNumber;
     pic_param.CurrPic.flags = 0;
-    pic_param.CurrPic.TopFieldOrderCnt = calc_poc((frameNumber - gop_start) % MaxPicOrderCntLsb);
+    pic_param.CurrPic.TopFieldOrderCnt = calc_poc((frameNumber - gop_start) % MaxPicOrderCntLsb,frameType);
     pic_param.CurrPic.BottomFieldOrderCnt = pic_param.CurrPic.TopFieldOrderCnt;
     CurrentCurrPic = pic_param.CurrPic;
 
@@ -375,49 +375,56 @@ bool ADM_vaEncodingContextH264::render_slice(int frameNumber,int frameType)
     VAStatus va_status;
     int i;
 
-    update_RefPicList();
+    update_RefPicList(frameType);
 
     /* one frame, one slice */
     slice_param.macroblock_address = 0;
     slice_param.num_macroblocks = frame_width_mbaligned * frame_height_mbaligned / (16 * 16); /* Measured by MB */
-          
-    slice_param.slice_type = (frameType == FRAME_IDR) ? 2 : frameType;
-    if (frameType == FRAME_IDR)
+    switch(frameType)      
     {
-        if (frameNumber != 0)
+        case FRAME_IDR:
+            slice_param.slice_type =2;
+            if (frameNumber != 0)
             ++slice_param.idr_pic_id;
-    }
-    else if (frameType == FRAME_P)
-    {
-        int refpiclist0_max = h264_maxref & 0xffff;
-        memcpy(slice_param.RefPicList0, RefPicList0_P, refpiclist0_max * sizeof (VAPictureH264));
-
-        for (i = refpiclist0_max; i < 32; i++)
+            break;
+        case FRAME_P:    
         {
-            slice_param.RefPicList0[i].picture_id = VA_INVALID_SURFACE;
-            slice_param.RefPicList0[i].flags = VA_PICTURE_H264_INVALID;
+            slice_param.slice_type=FRAME_P;
+            int refpiclist0_max = h264_maxref & 0xffff;
+            memcpy(slice_param.RefPicList0, RefPicList0_P, refpiclist0_max * sizeof (VAPictureH264));
+            for (i = refpiclist0_max; i < 32; i++)
+            {
+                slice_param.RefPicList0[i].picture_id = VA_INVALID_SURFACE;
+                slice_param.RefPicList0[i].flags = VA_PICTURE_H264_INVALID;
+            }
         }
-    }
-    else if (frameType == FRAME_B)
-    {
-        int refpiclist0_max = h264_maxref & 0xffff;
-        int refpiclist1_max = (h264_maxref >> 16) & 0xffff;
-
-        memcpy(slice_param.RefPicList0, RefPicList0_B, refpiclist0_max * sizeof (VAPictureH264));
-        for (i = refpiclist0_max; i < 32; i++)
+            break;
+        case FRAME_B:
         {
-            slice_param.RefPicList0[i].picture_id = VA_INVALID_SURFACE;
-            slice_param.RefPicList0[i].flags = VA_PICTURE_H264_INVALID;
-        }
+             slice_param.slice_type=FRAME_B;
+            int refpiclist0_max = h264_maxref & 0xffff;
+            int refpiclist1_max = (h264_maxref >> 16) & 0xffff;
 
-        memcpy(slice_param.RefPicList1, RefPicList1_B, refpiclist1_max * sizeof (VAPictureH264));
-        for (i = refpiclist1_max; i < 32; i++)
-        {
-            slice_param.RefPicList1[i].picture_id = VA_INVALID_SURFACE;
-            slice_param.RefPicList1[i].flags = VA_PICTURE_H264_INVALID;
+            memcpy(slice_param.RefPicList0, RefPicList0_B, refpiclist0_max * sizeof (VAPictureH264));
+            for (i = refpiclist0_max; i < 32; i++)
+            {
+                slice_param.RefPicList0[i].picture_id = VA_INVALID_SURFACE;
+                slice_param.RefPicList0[i].flags = VA_PICTURE_H264_INVALID;
+            }
+
+            memcpy(slice_param.RefPicList1, RefPicList1_B, refpiclist1_max * sizeof (VAPictureH264));
+            for (i = refpiclist1_max; i < 32; i++)
+            {
+                slice_param.RefPicList1[i].picture_id = VA_INVALID_SURFACE;
+                slice_param.RefPicList1[i].flags = VA_PICTURE_H264_INVALID;
+            }
         }
+            break;
+        default:
+            ADM_assert(0);
+            break;
     }
-
+   
     slice_param.slice_alpha_c0_offset_div2 = 0;
     slice_param.slice_beta_offset_div2 = 0;
     slice_param.direct_spatial_mv_pred_flag = 1;

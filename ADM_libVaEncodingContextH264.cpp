@@ -275,6 +275,7 @@ bool ADM_vaEncodingContextH264::generateExtraData(int *size, uint8_t **data)
  */
 bool ADM_vaEncodingContextH264::encode(ADMImage *in, ADMBitstream *out)
 {
+    int current_frame_type;
     if(!vaSurface[current_frame_encoding%SURFACE_NUM]->fromAdmImage(in))
     {
         ADM_warning("Failed to upload image to vaSurface\n");
@@ -295,7 +296,7 @@ bool ADM_vaEncodingContextH264::encode(ADMImage *in, ADMBitstream *out)
     if (current_frame_type == FRAME_IDR) 
     {
         render_sequence();
-        render_picture();            
+        render_picture(current_frame_encoding,current_frame_type);            
         if (h264_packedheader) 
         {
             render_packedsequence();
@@ -306,9 +307,9 @@ bool ADM_vaEncodingContextH264::encode(ADMImage *in, ADMBitstream *out)
     else 
     {
         out->flags = AVI_P_FRAME;
-        render_picture();
+        render_picture(current_frame_encoding,current_frame_type);
     }
-    render_slice();
+    render_slice(current_frame_encoding,current_frame_type);
 #else
     
     if (current_frame_type == FRAME_IDR) 
@@ -317,7 +318,7 @@ bool ADM_vaEncodingContextH264::encode(ADMImage *in, ADMBitstream *out)
     }else
          out->flags = AVI_P_FRAME;
     render_picture(current_frame_encoding,current_frame_type); 
-    render_slice();
+    render_slice(current_frame_encoding,current_frame_type);
 #endif    
     CHECK_VA_STATUS_BOOL( vaEndPicture(admLibVA::getDisplay(),context_id));
     
@@ -325,7 +326,10 @@ bool ADM_vaEncodingContextH264::encode(ADMImage *in, ADMBitstream *out)
     //--    
     
     CHECK_VA_STATUS_BOOL( vaSyncSurface(admLibVA::getDisplay(), vaSurface[current_frame_encoding % SURFACE_NUM]->surface));
-    
+#ifdef    ADM_VA_USE_MP4_FORMAT
+    out->len=vaEncodingBuffers[current_frame_encoding % SURFACE_NUM]->read(out->data, out->bufferSize);
+    ADM_assert(out->len>=0);
+#else
 #if 0 // Heavy convert
 
     int len=vaEncodingBuffers[current_frame_encoding % SURFACE_NUM]->read(tmpBuffer, out->bufferSize);
@@ -347,9 +351,10 @@ bool ADM_vaEncodingContextH264::encode(ADMImage *in, ADMBitstream *out)
     out->data[2]=l>>8;
     out->data[3]=l>>0;
 #endif    
+#endif
     /* reload a new frame data */
 
-    update_ReferenceFrames();        
+    update_ReferenceFrames(current_frame_type);        
     current_frame_encoding++;
     out->pts=in->Pts;
     out->dts=out->pts;

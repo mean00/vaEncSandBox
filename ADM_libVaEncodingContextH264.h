@@ -97,7 +97,7 @@ protected:
 //-- Per instance configuration --
           VAConfigID config_id;
           VAContextID context_id;
-          int current_frame_type;
+          
           
           VAEncSequenceParameterBufferH264 seq_param;
           VAEncPictureParameterBufferH264  pic_param;
@@ -149,9 +149,9 @@ protected:
 				unsigned int dpb_output_delay);
                
         void encoding2display_order(    uint64_t encoding_order, int intra_idr_period,  int *frame_type);
-        bool update_ReferenceFrames(void);
-        bool update_RefPicList(void);        
-        int  calc_poc(int pic_order_cnt_lsb);
+        bool update_ReferenceFrames(int frameType);
+        bool update_RefPicList(int frameType);        
+        int  calc_poc(int pic_order_cnt_lsb,int frameType);
         // MP4
         bool render_sequence(void);
         bool render_picture(int frameNumber,int frameType);
