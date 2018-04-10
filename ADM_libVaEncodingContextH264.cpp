@@ -316,17 +316,18 @@ bool ADM_vaEncodingContextH264::encode(ADMImage *in, ADMBitstream *out)
     {
         out->flags = AVI_KEY_FRAME;
     }else
+    {
          out->flags = AVI_P_FRAME;
+    }
     render_picture(current_frame_encoding,current_frame_type); 
     render_slice(current_frame_encoding,current_frame_type);
 #endif    
     CHECK_VA_STATUS_BOOL( vaEndPicture(admLibVA::getDisplay(),context_id));
-    
-
     //--    
     
     CHECK_VA_STATUS_BOOL( vaSyncSurface(admLibVA::getDisplay(), vaSurface[current_frame_encoding % SURFACE_NUM]->surface));
-#ifdef    ADM_VA_USE_MP4_FORMAT
+    
+#ifndef    ADM_VA_USE_MP4_FORMAT
     out->len=vaEncodingBuffers[current_frame_encoding % SURFACE_NUM]->read(out->data, out->bufferSize);
     ADM_assert(out->len>=0);
 #else

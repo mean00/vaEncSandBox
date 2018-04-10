@@ -232,7 +232,7 @@ bool ADM_vaEncodingContextH264::render_packedslice()
 /**
  * 
  */
-bool ADM_vaEncodingContextH264::render_packedsei(void)
+bool ADM_vaEncodingContextH264::render_packedsei(int frameNumber)
 {
     VAEncPackedHeaderParameterBuffer packed_header_param_buffer;
     VABufferID packed_sei_header_param_buf_id, packed_sei_buf_id, render_id[2];
@@ -259,7 +259,7 @@ bool ADM_vaEncodingContextH264::render_packedsei(void)
                                    i_initial_cpb_removal_delay,
                                    0,
                                    i_cpb_removal_delay_length,
-                                   i_cpb_removal_delay * current_frame_encoding,
+                                   i_cpb_removal_delay * frameNumber,
                                    i_dpb_output_delay_length,
                                    0);
     length_in_bits = bs.lengthInBits();

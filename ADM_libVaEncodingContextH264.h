@@ -161,7 +161,7 @@ protected:
         // Annex B
         bool render_packedsequence(void);
         bool render_packedpicture(void);
-        bool render_packedsei(void);
+        bool render_packedsei(int frameNumber);
         bool render_packedslice(void);
         bool build_packed_slice_buffer(vaBitstream *bs);
         
