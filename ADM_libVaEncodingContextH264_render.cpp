@@ -195,17 +195,8 @@ bool ADM_vaEncodingContextH264::update_RefPicList(void)
     return true;
 }
 
-/**
- * 
- * @return 
- */
-bool ADM_vaEncodingContextH264::render_sequence(void)
+void ADM_vaEncodingContextH264::fillSeqParam()
 {
-    VABufferID seq_param_buf, rc_param_buf, misc_param_tmpbuf, render_id[2];
-    VAStatus va_status;
-    VAEncMiscParameterBuffer *misc_param, *misc_param_tmp;
-    VAEncMiscParameterRateControl *misc_rate_ctrl;
-
     seq_param.level_idc = 41 /*SH_LEVEL_3*/;
     seq_param.picture_width_in_mbs = frame_width_mbaligned / 16;
     seq_param.picture_height_in_mbs = frame_height_mbaligned / 16;
@@ -235,6 +226,19 @@ bool ADM_vaEncodingContextH264::render_sequence(void)
         seq_param.frame_crop_top_offset = 0;
         seq_param.frame_crop_bottom_offset = (frame_height_mbaligned - frame_height) / 2;
     }
+}
+/**
+ * 
+ * @return 
+ */
+bool ADM_vaEncodingContextH264::render_sequence(void)
+{
+    VABufferID seq_param_buf, rc_param_buf, misc_param_tmpbuf, render_id[2];
+    VAStatus va_status;
+    VAEncMiscParameterBuffer *misc_param, *misc_param_tmp;
+    VAEncMiscParameterRateControl *misc_rate_ctrl;
+
+   fillSeqParam();
     CHECK_VA_STATUS_BOOL(vaCreateBuffer(admLibVA::getDisplay(), context_id,
                                         VAEncSequenceParameterBufferType,
                                         sizeof (seq_param), 1, &seq_param, &seq_param_buf));
@@ -307,17 +311,12 @@ int ADM_vaEncodingContextH264::calc_poc(int pic_order_cnt_lsb)
 
     return TopFieldOrderCnt;
 }
-
 /**
  * 
- * @return 
  */
-bool ADM_vaEncodingContextH264::render_picture(void)
+void ADM_vaEncodingContextH264::fillPPS()
 {
-    VABufferID pic_param_buf;
-    VAStatus va_status;
-    int i = 0;
-    int current_slot = (current_frame_encoding % SURFACE_NUM);
+      int current_slot = (current_frame_encoding % SURFACE_NUM);
     pic_param.CurrPic.picture_id = vaRefSurface[current_slot]->surface;
     pic_param.CurrPic.frame_idx = current_frame_encoding;
     pic_param.CurrPic.flags = 0;
@@ -342,7 +341,7 @@ bool ADM_vaEncodingContextH264::render_picture(void)
     else
     {
         memcpy(pic_param.ReferenceFrames, ReferenceFrames, numShortTerm * sizeof (VAPictureH264));
-        for (i = numShortTerm; i < SURFACE_NUM; i++)
+        for (int i = numShortTerm; i < SURFACE_NUM; i++)
         {
             pic_param.ReferenceFrames[i].picture_id = VA_INVALID_SURFACE;
             pic_param.ReferenceFrames[i].flags = VA_PICTURE_H264_INVALID;
@@ -358,6 +357,17 @@ bool ADM_vaEncodingContextH264::render_picture(void)
     pic_param.last_picture = 0;
     pic_param.pic_init_qp = initial_qp;
 
+}
+/**
+ * 
+ * @return 
+ */
+bool ADM_vaEncodingContextH264::render_picture(void)
+{
+    VABufferID pic_param_buf;
+    VAStatus va_status;
+    int i = 0;
+    fillPPS();
     CHECK_VA_STATUS_BOOL(vaCreateBuffer(admLibVA::getDisplay(), context_id, VAEncPictureParameterBufferType,
                                         sizeof (pic_param), 1, &pic_param, &pic_param_buf));
 

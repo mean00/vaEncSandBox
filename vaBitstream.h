@@ -66,6 +66,7 @@ public:
         void    startCodePrefix();
         void    nalHeader(int nal_ref_idc, int nal_unit_type);
         int     lengthInBits() {return bit_offset;};
+        int     lengthInBytes() { int l=bit_offset;return (l+7)>>3;};
         void    add1BitIfNotaligned()
         {
                 if ( bit_offset & 0x7) 

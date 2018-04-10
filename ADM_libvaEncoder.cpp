@@ -105,6 +105,8 @@ ADM_libvaEncoder::ADM_libvaEncoder(ADM_coreVideoFilter *src,bool globalHeader) :
     image=new ADMImageDefault(w,h);
     plane=(w*h*3)/2;
     vaContext=NULL;
+    extraDataSize=0;
+    extraData=NULL;
 }
 /**
  * 
@@ -120,6 +122,7 @@ bool         ADM_libvaEncoder::setup(void)
     std::vector<ADM_vaSurface *>xNone;
     vaContext= ADM_vaEncodingContext::allocate(0,w,h,xNone);
     if(!vaContext) return false;
+    vaContext->generateExtraData(&(this->extraDataSize),&(this->extraData));
     return true;
 }
 /** 
@@ -132,6 +135,11 @@ ADM_libvaEncoder::~ADM_libvaEncoder()
     {
         delete vaContext;
         vaContext=NULL;
+    }
+    if(extraData)
+    {
+        delete [] extraData;
+        extraData=NULL;
     }
   
 }
@@ -155,7 +163,12 @@ bool         ADM_libvaEncoder::encode (ADMBitstream * out)
     return r;
 }
 
-
+bool         ADM_libvaEncoder::getExtraData(uint32_t *l,uint8_t **d)
+{
+   *l=extraDataSize;
+   *d=extraData;
+    return true;
+}
 
 
 

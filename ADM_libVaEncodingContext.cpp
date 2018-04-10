@@ -120,6 +120,7 @@ static bool  lookupSupportedFormat(VAProfile profile)
  */
 bool init_va(void)
 {
+    ADM_info("initializing VA encoder\n");
     if(lookupSupportedFormat(VAProfileH264High))
     {
         ADM_info("H264 High is supported\n");
@@ -145,7 +146,7 @@ bool init_va(void)
     }
     newAttributes.clean();
     newAttributes.add(VAConfigAttribRTFormat,VA_RT_FORMAT_YUV420);
-    
+  
     uint32_t pack=attributes.get(VAConfigAttribEncPackedHeaders);
     if(pack!=VA_ATTRIB_NOT_SUPPORTED)
     {        
@@ -153,11 +154,13 @@ bool init_va(void)
         
         
         uint32_t new_value=VA_ENC_PACKED_HEADER_NONE;
+#ifndef ADM_VA_USE_MP4_FORMAT        
 #define CHECK_PACK(x) if(pack & x)         {new_value |=x;ADM_info("\t "#x" is supported\n");}
         CHECK_PACK(VA_ENC_PACKED_HEADER_SEQUENCE)
         CHECK_PACK(VA_ENC_PACKED_HEADER_PICTURE)
         CHECK_PACK(VA_ENC_PACKED_HEADER_SLICE)
         CHECK_PACK(VA_ENC_PACKED_HEADER_MISC)
+#endif                
         h264_packedheader = new_value;
         newAttributes.add(VAConfigAttribEncPackedHeaders,new_value);
     }
@@ -173,6 +176,7 @@ bool init_va(void)
         h264_maxref = h264_maxref_tmp;
         ADM_info("Max ref frame is %d\n",h264_maxref);
     }
+    ADM_info("/initializing VA encoder\n");
     return true;
 }
 
