@@ -55,6 +55,7 @@
 #include "ADM_libVaEncodingContextH264.h"
 #include "ADM_bitstream.h"
 #include "ADM_coreVideoEncoder.h"
+#include "ADM_videoInfoExtractor.h"
 
 #define aprintf printf
 /**
@@ -94,6 +95,7 @@ ADM_vaEncodingContextH264::ADM_vaEncodingContextH264()
     minimal_qp = 0;
     rc_mode = VA_RC_CBR; //VA_RC_CQP;
     ADM_info("/vaH264 ctor\n");
+    tmpBuffer=NULL;
 }
 /**
  * 
@@ -207,6 +209,7 @@ bool ADM_vaEncodingContextH264::setup( int width, int height, std::vector<ADM_va
                 return false;
             }
         }
+        tmpBuffer=new uint8_t[codedbuf_size];
         render_sequence();
         ADM_info("/vaH264 setup\n");
         return true;                
@@ -323,7 +326,17 @@ bool ADM_vaEncodingContextH264::encode(ADMImage *in, ADMBitstream *out)
     
     CHECK_VA_STATUS_BOOL( vaSyncSurface(admLibVA::getDisplay(), vaSurface[current_frame_encoding % SURFACE_NUM]->surface));
     
+#if 0 // Heavy convert
 
+    int len=vaEncodingBuffers[current_frame_encoding % SURFACE_NUM]->read(tmpBuffer, out->bufferSize);
+    int l=ADM_unescapeH264(len-4,tmpBuffer+4,out->data+4);
+    out->data[0]=l>>24;
+    out->data[1]=l>>16;
+    out->data[2]=l>>8;
+    out->data[3]=l>>0;
+    out->len=l+4;
+
+#else            // light convert, no escape
     out->len=vaEncodingBuffers[current_frame_encoding % SURFACE_NUM]->read(out->data, out->bufferSize);
     ADM_assert(out->len>=0);
 
@@ -333,7 +346,7 @@ bool ADM_vaEncodingContextH264::encode(ADMImage *in, ADMBitstream *out)
     out->data[1]=l>>16;
     out->data[2]=l>>8;
     out->data[3]=l>>0;
-    
+#endif    
     /* reload a new frame data */
 
     update_ReferenceFrames();        

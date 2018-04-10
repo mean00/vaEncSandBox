@@ -132,6 +132,7 @@ protected:
           ADM_vaEncodingBuffers *vaEncodingBuffers[VA_ENC_NB_SURFACE];
           ADM_vaSurface         *vaSurface[VA_ENC_NB_SURFACE];
           ADM_vaSurface         *vaRefSurface[VA_ENC_NB_SURFACE];
+          uint8_t               *tmpBuffer;
 
          void sps_rbsp(vaBitstream *bs);
          void pps_rbsp(vaBitstream *bs);
