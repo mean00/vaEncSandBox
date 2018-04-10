@@ -332,7 +332,7 @@ void ADM_vaEncodingContextH264::slice_header(vaBitstream *bs)
  * displaying_order: displaying order
  * frame_type: frame type 
  */
-void ADM_vaEncodingContextH264::encoding2display_order(uint64_t encoding_order, int intra_idr_period, int *frame_type)
+void ADM_vaEncodingContextH264::encoding2display_order(uint64_t encoding_order, int intra_idr_period, vaFrameType *frame_type)
 {
     // simple use case, no delay encoding, only I(DR) PPPPPP
     if (!encoding_order)

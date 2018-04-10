@@ -148,14 +148,14 @@ protected:
 				unsigned int dpb_output_length,
 				unsigned int dpb_output_delay);
                
-        void encoding2display_order(    uint64_t encoding_order, int intra_idr_period,  int *frame_type);
-        bool update_ReferenceFrames(int frameType);
-        bool update_RefPicList(int frameType);        
-        int  calc_poc(int pic_order_cnt_lsb,int frameType);
+        void encoding2display_order(    uint64_t encoding_order, int intra_idr_period,  vaFrameType *frame_type);
+        bool update_ReferenceFrames(vaFrameType frameType);
+        bool update_RefPicList(vaFrameType frameType);        
+        int  calc_poc(int pic_order_cnt_lsb,vaFrameType frameType);
         // MP4
         bool render_sequence(void);
-        bool render_picture(int frameNumber,int frameType);
-        bool render_slice(int frameNumber,int frameType);   
+        bool render_picture(int frameNumber,vaFrameType frameType);
+        bool render_slice(int frameNumber,vaFrameType frameType);   
         void slice_header(vaBitstream *bs);
         
         // Annex B
@@ -169,7 +169,7 @@ protected:
 
         //
         void fillSeqParam();
-        void fillPPS(int frameNumber, int frameType);
+        void fillPPS(int frameNumber, vaFrameType frameType);
         
 };
 // EOF 

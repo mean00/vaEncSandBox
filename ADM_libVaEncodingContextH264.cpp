@@ -275,7 +275,7 @@ bool ADM_vaEncodingContextH264::generateExtraData(int *size, uint8_t **data)
  */
 bool ADM_vaEncodingContextH264::encode(ADMImage *in, ADMBitstream *out)
 {
-    int current_frame_type;
+    vaFrameType current_frame_type;
     if(!vaSurface[current_frame_encoding%SURFACE_NUM]->fromAdmImage(in))
     {
         ADM_warning("Failed to upload image to vaSurface\n");

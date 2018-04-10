@@ -50,11 +50,13 @@
  ***************************************************************************/
 #pragma once
 
-#define FRAME_P 0
-#define FRAME_B 1
-#define FRAME_I 2
-#define FRAME_IDR 7
-
+enum vaFrameType
+{
+    FRAME_P=0,
+    FRAME_B=1,
+    FRAME_I=2,
+    FRAME_IDR=7
+};
 
 
 #define NAL_REF_IDC_NONE        0
