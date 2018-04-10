@@ -49,7 +49,8 @@
  *                                                                         *
  ***************************************************************************/
 #pragma once
-
+/**
+ */
 enum vaFrameType
 {
     FRAME_P=0,
@@ -57,29 +58,25 @@ enum vaFrameType
     FRAME_I=2,
     FRAME_IDR=7
 };
-
+/**
+ */
+enum vaSliceType
+{
+ SLICE_TYPE_P    =        0,
+ SLICE_TYPE_B    =        1,
+ SLICE_TYPE_I    =        2,
+};
+#define IS_P_SLICE(type) (SLICE_TYPE_P == (type))
+#define IS_B_SLICE(type) (SLICE_TYPE_B == (type))
+#define IS_I_SLICE(type) (SLICE_TYPE_I == (type))
 
 #define NAL_REF_IDC_NONE        0
 #define NAL_REF_IDC_LOW         1
 #define NAL_REF_IDC_MEDIUM      2
 #define NAL_REF_IDC_HIGH        3
 
-#define NAL_NON_IDR             1
-#define NAL_IDR                 5
-#define NAL_SPS                 7
-#define NAL_PPS                 8
-#define NAL_SEI			6
-
-#define SLICE_TYPE_P            0
-#define SLICE_TYPE_B            1
-#define SLICE_TYPE_I            2
-#define IS_P_SLICE(type) (SLICE_TYPE_P == (type))
-#define IS_B_SLICE(type) (SLICE_TYPE_B == (type))
-#define IS_I_SLICE(type) (SLICE_TYPE_I == (type))
 
 
-#define ENTROPY_MODE_CAVLC      0
-#define ENTROPY_MODE_CABAC      1
 
 #define PROFILE_IDC_BASELINE    66
 #define PROFILE_IDC_MAIN        77
