@@ -120,7 +120,7 @@ bool         ADM_libvaEncoder::setup(void)
     w=info->width;
     h=info->height;
     std::vector<ADM_vaSurface *>xNone;
-    vaContext= ADM_vaEncodingContext::allocate(0,w,h,xNone);
+    vaContext= ADM_vaEncodingContext::allocate(0,w,h,getFrameIncrement(),xNone);
     if(!vaContext) return false;
     vaContext->generateExtraData(&(this->extraDataSize),&(this->extraData));
     return true;

@@ -89,7 +89,7 @@ class ADM_vaEncodingContextH264 : public ADM_vaEncodingContext
 public:
                     ADM_vaEncodingContextH264()   ;             
                     ~ADM_vaEncodingContextH264();
-            bool    setup( int width, int height, std::vector<ADM_vaSurface *>knownSurfaces);
+            bool    setup( int width, int height, int frameInc, std::vector<ADM_vaSurface *>knownSurfaces);
     virtual bool    encode(ADMImage *in, ADMBitstream *out);
     virtual bool    generateExtraData(int *size, uint8_t **data);
     
@@ -127,7 +127,7 @@ protected:
           int minimal_qp;
           int rc_mode;
           
-          
+          int frameDen,frameNum;
           //--
           ADM_vaEncodingBuffers *vaEncodingBuffers[VA_ENC_NB_SURFACE];
           ADM_vaSurface         *vaSurface[VA_ENC_NB_SURFACE];

@@ -63,7 +63,7 @@ class ADM_vaEncodingContext
 public:
                 ADM_vaEncodingContext() {}
     virtual      ~ADM_vaEncodingContext() {}
-    static       ADM_vaEncodingContext *allocate(int codec, int width, int height, std::vector<ADM_vaSurface *>knownSurfaces);
+    static       ADM_vaEncodingContext *allocate(int codec, int width, int height, int frameInc,std::vector<ADM_vaSurface *>knownSurfaces);
     virtual bool encode(ADMImage *in, ADMBitstream *out)=0;
     virtual bool generateExtraData(int *size, uint8_t **data)=0;
 };

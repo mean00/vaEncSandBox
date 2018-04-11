@@ -136,7 +136,7 @@ ADM_vaEncodingContextH264::~ADM_vaEncodingContextH264()
  * @param knownSurfaces
  * @return 
  */
-bool ADM_vaEncodingContextH264::setup( int width, int height, std::vector<ADM_vaSurface *>knownSurfaces)
+bool ADM_vaEncodingContextH264::setup( int width, int height, int frameInc,std::vector<ADM_vaSurface *>knownSurfaces)
 {
         ADM_info("vaH264 setup\n");
         VAStatus va_status;
@@ -145,7 +145,8 @@ bool ADM_vaEncodingContextH264::setup( int width, int height, std::vector<ADM_va
         frame_width_mbaligned=(width+15)&~15;
         frame_height_mbaligned=(height+15)&~15;
         int  i;
-        
+        usSecondsToFrac(frameInc,&frameNum,&frameDen);        
+        ADM_info("xFps : %d : %d\n",frameNum,frameDen);
         // marshall new config...
         
         // copy common part

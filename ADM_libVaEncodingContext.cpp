@@ -75,7 +75,7 @@ using namespace ADM_VA_Global;
 
 /**
  */
-ADM_vaEncodingContext *ADM_vaEncodingContext::allocate(int codec, int alignedWidth, int alignedHeight, std::vector<ADM_vaSurface *>knownSurfaces)
+ADM_vaEncodingContext *ADM_vaEncodingContext::allocate(int codec, int alignedWidth, int alignedHeight, int frameInc,std::vector<ADM_vaSurface *>knownSurfaces)
 {
     if(!initDone)
     {
@@ -87,7 +87,7 @@ ADM_vaEncodingContext *ADM_vaEncodingContext::allocate(int codec, int alignedWid
     }
     // Allocate a new one
     ADM_vaEncodingContextH264 *r=new ADM_vaEncodingContextH264;
-    if(!r->setup(alignedWidth,   alignedHeight,  knownSurfaces))
+    if(!r->setup(alignedWidth,   alignedHeight, frameInc, knownSurfaces))
     {
         delete r;
         return NULL;
