@@ -371,7 +371,7 @@ bool ADM_vaEncodingContextH264::render_slice(int frameNumber,vaFrameType frameTy
         case FRAME_IDR:
             slice_param.slice_type =2;
             if (frameNumber != 0)
-            ++slice_param.idr_pic_id;
+                slice_param.idr_pic_id++;
             break;
         case FRAME_P:    
         {

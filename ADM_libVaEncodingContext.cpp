@@ -174,7 +174,7 @@ bool init_va(void)
     if(h264_maxref_tmp!=VA_ATTRIB_NOT_SUPPORTED)
     {    
         h264_maxref = h264_maxref_tmp;
-        ADM_info("Max ref frame is %d\n",h264_maxref);
+        ADM_info("Max ref frame is %d/%d\n",h264_maxref&0xffff,h264_maxref>>16);
     }
     ADM_info("/initializing VA encoder\n");
     return true;
