@@ -81,7 +81,7 @@ ADM_vaEncodingContextH264::ADM_vaEncodingContextH264()
     memset(&slice_param, 0, sizeof(slice_param));
     
 
-    num_ref_frames = 3;
+    num_ref_frames = 1;
     
     
     numShortTerm = 0;
@@ -91,7 +91,7 @@ ADM_vaEncodingContextH264::ADM_vaEncodingContextH264()
 
 
     // RC
-    initial_qp = 26;
+    initial_qp = 15;
     minimal_qp = 0;
     rc_mode = VA_RC_CBR; //VA_RC_CQP;
     ADM_info("/vaH264 ctor\n");
@@ -352,11 +352,7 @@ bool ADM_vaEncodingContextH264::encode(ADMImage *in, ADMBitstream *out)
     }
 
     encoding2display_order(current_frame_encoding, vaH264Settings.IntraPeriod,    &current_frame_type);
-    aprintf("Encoding order = %d,  frame type=%d\n",(int)current_frame_encoding,current_frame_type);
-    if (current_frame_type == FRAME_IDR) 
-    {
-        numShortTerm = 0;
-    }
+    aprintf("Encoding order = %d,  frame type=%d\n",(int)current_frame_encoding,current_frame_type);  
     int current_slot= (current_frame_encoding % SURFACE_NUM);
 
     CHECK_VA_STATUS_BOOL(vaBeginPicture(admLibVA::getDisplay(), context_id, vaSurface[current_slot]->surface));
@@ -368,7 +364,7 @@ bool ADM_vaEncodingContextH264::encode(ADMImage *in, ADMBitstream *out)
         out->flags = AVI_KEY_FRAME;
     }else
     {
-         out->flags = AVI_P_FRAME;
+        out->flags = AVI_P_FRAME;
     }
     render_picture(current_frame_encoding,current_frame_type); 
     render_slice(current_frame_encoding,current_frame_type); 

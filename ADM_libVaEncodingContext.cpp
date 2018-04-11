@@ -66,7 +66,8 @@ namespace ADM_VA_Global
   int            ip_period = 1;
   vaSetAttributes newAttributes;
   int            h264_packedheader = 0; /* support pack header? */
-  int            h264_maxref = (1<<16|1);
+  int            h264_maxref_p0 = 1;
+  int            h264_maxref_p1 = 1;
 };
 
 using namespace ADM_VA_Global;
@@ -173,8 +174,9 @@ bool init_va(void)
     int h264_maxref_tmp=attributes.get(VAConfigAttribEncMaxRefFrames);
     if(h264_maxref_tmp!=VA_ATTRIB_NOT_SUPPORTED)
     {    
-        h264_maxref = h264_maxref_tmp;
-        ADM_info("Max ref frame is %d/%d\n",h264_maxref&0xffff,h264_maxref>>16);
+        h264_maxref_p0 = h264_maxref_tmp&0xffff;
+        h264_maxref_p1 = h264_maxref_tmp>>16;
+        ADM_info("Max ref frame is p0:%d/p1:%d\n",h264_maxref_p0,h264_maxref_p1);
     }
     ADM_info("/initializing VA encoder\n");
     return true;

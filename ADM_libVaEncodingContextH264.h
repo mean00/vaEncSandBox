@@ -76,7 +76,8 @@ namespace ADM_VA_Global
   extern int                ip_period;
   extern vaSetAttributes    newAttributes;
   extern int                h264_packedheader ; /* support pack header? */
-  extern int                h264_maxref ;
+  extern int                h264_maxref_p0 ;
+  extern int                h264_maxref_p1 ;
 };
 using namespace ADM_VA_Global;
 

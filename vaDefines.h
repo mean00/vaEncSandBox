@@ -51,6 +51,8 @@
 #pragma once
 /**
  */
+#define SURFACE_NUM 16
+
 enum vaFrameType
 {
     FRAME_P=0,
@@ -83,13 +85,4 @@ enum vaSliceType
 #define PROFILE_IDC_HIGH        100
    
 
-#define SURFACE_NUM 16 /* 16 surfaces for source YUV */
 
-static const  int rc_default_modes[] = {
-    VA_RC_VBR,
-    VA_RC_CQP,
-    VA_RC_VBR_CONSTRAINED,
-    VA_RC_CBR,
-    VA_RC_VCM,
-    VA_RC_NONE,
-};
