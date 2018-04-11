@@ -216,10 +216,83 @@ bool ADM_vaEncodingContextH264::setup( int width, int height, int frameInc,std::
         return true;                
 }
 
+
+/**
+ * 
+ * @param in
+ * @param out
+ * @return 
+ */
+#ifndef ADM_VA_USE_MP4_FORMAT    
+
 bool ADM_vaEncodingContextH264::generateExtraData(int *size, uint8_t **data)
 {
     ADM_info("vaH264 extraData\n");
-#ifdef ADM_VA_USE_MP4_FORMAT 
+
+    *size=0;
+    *data=NULL;    
+    ADM_info("/vaH264 extraData\n");
+    return true;
+}
+bool ADM_vaEncodingContextH264::encode(ADMImage *in, ADMBitstream *out)
+{
+    vaFrameType current_frame_type;
+    if(!vaSurface[current_frame_encoding%SURFACE_NUM]->fromAdmImage(in))
+    {
+        ADM_warning("Failed to upload image to vaSurface\n");
+        return false;
+    }
+
+    encoding2display_order(current_frame_encoding, vaH264Settings.IntraPeriod,    &current_frame_type);
+    aprintf("Encoding order = %d,  frame type=%d\n",(int)current_frame_encoding,current_frame_type);
+    if (current_frame_type == FRAME_IDR) 
+    {
+        numShortTerm = 0;
+    }
+    int current_slot= (current_frame_encoding % SURFACE_NUM);
+
+    CHECK_VA_STATUS_BOOL(vaBeginPicture(admLibVA::getDisplay(), context_id, vaSurface[current_slot]->surface));
+    
+
+    if (current_frame_type == FRAME_IDR) 
+    {
+        render_sequence();
+        render_picture(current_frame_encoding,current_frame_type);            
+        if (h264_packedheader) 
+        {
+            render_packedsequence();
+            render_packedpicture();
+        }
+        out->flags = AVI_KEY_FRAME;
+    }
+    else 
+    {
+        out->flags = AVI_P_FRAME;
+        render_picture(current_frame_encoding,current_frame_type);
+    }
+    render_slice(current_frame_encoding,current_frame_type);
+    CHECK_VA_STATUS_BOOL( vaEndPicture(admLibVA::getDisplay(),context_id));
+    //--    
+    
+    CHECK_VA_STATUS_BOOL( vaSyncSurface(admLibVA::getDisplay(), vaSurface[current_frame_encoding % SURFACE_NUM]->surface));
+    
+    out->len=vaEncodingBuffers[current_frame_encoding % SURFACE_NUM]->read(out->data, out->bufferSize);
+    ADM_assert(out->len>=0);
+
+    /* reload a new frame data */
+
+    update_ReferenceFrames(current_frame_type);        
+    current_frame_encoding++;
+    out->pts=in->Pts;
+    out->dts=out->pts;
+    return true;
+}
+
+#else // MP4 format
+
+bool ADM_vaEncodingContextH264::generateExtraData(int *size, uint8_t **data)
+{
+    ADM_info("vaH264 extraData\n");
     vaBitstream sps,pps;
     
     fillSeqParam();
@@ -260,14 +333,9 @@ bool ADM_vaEncodingContextH264::generateExtraData(int *size, uint8_t **data)
     
     mixDump(*data,*size);
     
-#else // Annex B
-    *size=0;
-    *data=NULL;    
-#endif
     ADM_info("/vaH264 extraData\n");
     return true;
 }
-
 /**
  * 
  * @param in
@@ -293,25 +361,7 @@ bool ADM_vaEncodingContextH264::encode(ADMImage *in, ADMBitstream *out)
 
     CHECK_VA_STATUS_BOOL(vaBeginPicture(admLibVA::getDisplay(), context_id, vaSurface[current_slot]->surface));
     
-#ifndef ADM_VA_USE_MP4_FORMAT    
-    if (current_frame_type == FRAME_IDR) 
-    {
-        render_sequence();
-        render_picture(current_frame_encoding,current_frame_type);            
-        if (h264_packedheader) 
-        {
-            render_packedsequence();
-            render_packedpicture();
-        }
-        out->flags = AVI_KEY_FRAME;
-    }
-    else 
-    {
-        out->flags = AVI_P_FRAME;
-        render_picture(current_frame_encoding,current_frame_type);
-    }
-    render_slice(current_frame_encoding,current_frame_type);
-#else
+
     
     if (current_frame_type == FRAME_IDR) 
     {
@@ -321,39 +371,33 @@ bool ADM_vaEncodingContextH264::encode(ADMImage *in, ADMBitstream *out)
          out->flags = AVI_P_FRAME;
     }
     render_picture(current_frame_encoding,current_frame_type); 
-    render_slice(current_frame_encoding,current_frame_type);
-#endif    
+    render_slice(current_frame_encoding,current_frame_type); 
     CHECK_VA_STATUS_BOOL( vaEndPicture(admLibVA::getDisplay(),context_id));
     //--    
     
     CHECK_VA_STATUS_BOOL( vaSyncSurface(admLibVA::getDisplay(), vaSurface[current_frame_encoding % SURFACE_NUM]->surface));
-    
-#ifndef    ADM_VA_USE_MP4_FORMAT
-    out->len=vaEncodingBuffers[current_frame_encoding % SURFACE_NUM]->read(out->data, out->bufferSize);
-    ADM_assert(out->len>=0);
-#else
-#if 0 // Heavy convert
+  
+    #if 0 // Heavy convert
 
-    int len=vaEncodingBuffers[current_frame_encoding % SURFACE_NUM]->read(tmpBuffer, out->bufferSize);
-    int l=ADM_unescapeH264(len-4,tmpBuffer+4,out->data+4);
-    out->data[0]=l>>24;
-    out->data[1]=l>>16;
-    out->data[2]=l>>8;
-    out->data[3]=l>>0;
-    out->len=l+4;
+        int len=vaEncodingBuffers[current_frame_encoding % SURFACE_NUM]->read(tmpBuffer, out->bufferSize);
+        int l=ADM_unescapeH264(len-4,tmpBuffer+4,out->data+4);
+        out->data[0]=l>>24;
+        out->data[1]=l>>16;
+        out->data[2]=l>>8;
+        out->data[3]=l>>0;
+        out->len=l+4;
 
-#else            // light convert, no escape
-    out->len=vaEncodingBuffers[current_frame_encoding % SURFACE_NUM]->read(out->data, out->bufferSize);
-    ADM_assert(out->len>=0);
+    #else            // light convert, no escape
+        out->len=vaEncodingBuffers[current_frame_encoding % SURFACE_NUM]->read(out->data, out->bufferSize);
+        ADM_assert(out->len>=0);
 
-    // Set NAL Size (wtf ?)
-    int l=out->len-4;
-    out->data[0]=l>>24;
-    out->data[1]=l>>16;
-    out->data[2]=l>>8;
-    out->data[3]=l>>0;
-#endif    
-#endif
+        // Set NAL Size (wtf ?)
+        int l=out->len-4;
+        out->data[0]=l>>24;
+        out->data[1]=l>>16;
+        out->data[2]=l>>8;
+        out->data[3]=l>>0;
+    #endif    
     /* reload a new frame data */
 
     update_ReferenceFrames(current_frame_type);        
@@ -362,4 +406,6 @@ bool ADM_vaEncodingContextH264::encode(ADMImage *in, ADMBitstream *out)
     out->dts=out->pts;
     return true;
 }
+#endif
+
 // EOF
