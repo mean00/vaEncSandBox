@@ -308,7 +308,7 @@ void ADM_vaEncodingContextH264::fillPPS(int frameNumber, vaFrameType frameType)
 {
     int current_slot = (frameNumber % SURFACE_NUM);
     pic_param.CurrPic.picture_id = vaRefSurface[current_slot]->surface;
-    pic_param.CurrPic.frame_idx = frameNumber;
+    pic_param.CurrPic.frame_idx = frameNumber-gop_start;
     pic_param.CurrPic.flags = 0;
     pic_param.CurrPic.TopFieldOrderCnt = calc_poc((frameNumber - gop_start) % MaxPicOrderCntLsb,frameType);
     pic_param.CurrPic.BottomFieldOrderCnt = pic_param.CurrPic.TopFieldOrderCnt;
@@ -331,7 +331,7 @@ void ADM_vaEncodingContextH264::fillPPS(int frameNumber, vaFrameType frameType)
     pic_param.pic_fields.bits.reference_pic_flag = (frameType != FRAME_B);
     pic_param.pic_fields.bits.entropy_coding_mode_flag = 1;
     pic_param.pic_fields.bits.deblocking_filter_control_present_flag = 1;
-    pic_param.frame_num = frameNumber;
+    pic_param.frame_num = frameNumber-gop_start;
     pic_param.coded_buf = vaEncodingBuffers[current_slot]->getId();
     pic_param.last_picture = 0;
     pic_param.pic_init_qp = initial_qp;
