@@ -51,13 +51,30 @@
 #include "ADM_default.h"
 #include "va/va.h"
 #include "va/va_enc_h264.h"
-#include "ADM_coreLibVaBuffer.h"
+#include "ADM_coreLibVA_buffer.h"
 #include "ADM_libVaEncodingContextH264.h"
 #include "ADM_bitstream.h"
 #include "ADM_coreVideoEncoder.h"
 #include "ADM_videoInfoExtractor.h"
 
 #define aprintf printf
+
+
+/**
+ */
+ADM_vaEncodingContext *ADM_vaEncodingContext::allocate(int codec, int alignedWidth, int alignedHeight, int frameInc,std::vector<ADM_vaSurface *>knownSurfaces)
+{
+
+    // Allocate a new one
+    ADM_vaEncodingContextH264 *r=new ADM_vaEncodingContextH264;
+    if(!r->setup(alignedWidth,   alignedHeight, frameInc, knownSurfaces))
+    {
+        delete r;
+        return NULL;
+    }
+    return r;
+}
+
 /**
  * 
  */

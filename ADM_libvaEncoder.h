@@ -28,8 +28,6 @@
 class ADM_libvaEncoder : public ADM_coreVideoEncoder
 {
 protected:
-               int plane;               
-               int                      render_sequence(void);
                ADM_vaEncodingContext     *vaContext;
 public:
 

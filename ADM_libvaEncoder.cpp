@@ -50,47 +50,9 @@
 #include "ADM_libvaEncoder.h"
 #include "va/va.h"
 #include "va/va_enc_h264.h"
-#include "ADM_coreLibVaBuffer.h"
+#include "ADM_coreLibVA_buffer.h"
 #include "vaDefines.h"
 #include "ADM_libVaEncodingContext.h"
-// setup once
-static  VADisplay va_dpy;
-
-// configuration
-
-
-//--
-//--
-
-#define MIN(a, b) ((a)>(b)?(b):(a))
-#define MAX(a, b) ((a)>(b)?(a):(b))
-
-
-#define SRC_SURFACE_IN_ENCODING 0
-#define SRC_SURFACE_IN_STORAGE  1
-static  int srcsurface_status[SURFACE_NUM];
-static  int encode_syncmode = 1; // not mt
-
-
-    
-//----
-static int init_va(void);
-static int render_packedsequence(void);
-static int render_packedpicture(void);
-static void render_packedsei(void);
-static int render_picture(void);
-static int render_slice(void);
-static int update_ReferenceFrames(void);
-static int save_codeddata(unsigned long long display_order, unsigned long long encode_order);
-
-//---
-#define CHECK_VASTATUS(va_status,func)                                  \
-    if (va_status != VA_STATUS_SUCCESS) {                               \
-        fprintf(stderr,"%s:%s (%d) failed,exit\n", __func__, func, __LINE__); \
-        exit(1);                                                        \
-    }
-
-
 
 /**
         \fn ADM_libvaEncoder
@@ -103,7 +65,6 @@ ADM_libvaEncoder::ADM_libvaEncoder(ADM_coreVideoFilter *src,bool globalHeader) :
     w=info->width;
     h=info->height;
     image=new ADMImageDefault(w,h);
-    plane=(w*h*3)/2;
     vaContext=NULL;
     extraDataSize=0;
     extraData=NULL;

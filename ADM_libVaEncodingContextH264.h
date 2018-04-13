@@ -60,7 +60,7 @@
  */
 #define VA_ENC_NB_SURFACE 16
 #include "ADM_libVaEncodingContext.h"
-#include "vaBitstream.h"
+#include "ADM_coreLibVA_bitstream.h"
 #include "vaDefines.h"
 #include "vaenc_settings.h"
 extern vaconf_settings vaH264Settings;
