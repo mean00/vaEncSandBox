@@ -27,7 +27,7 @@ extern "C"
 #include "vaenc_settings_desc.cpp"
 }
 extern bool     vaEncConfigure(void);
- static const  vaconf_settings defaultConf = {10000,100};
+ static const  vaconf_settings defaultConf = {10*1000,100};
 vaconf_settings vaH264Settings=defaultConf;
 /**
  * 
@@ -37,16 +37,25 @@ void resetConfigurationData()
     memcpy(&vaH264Settings, &defaultConf, sizeof(vaH264Settings));
 }
 
+/**
+ * 
+ * @return 
+ */
+static bool         ADM_libvaEncoder_probe()
+{
+    return true;
+} 
 ADM_DECLARE_VIDEO_ENCODER_PREAMBLE(ADM_libvaEncoder);
-ADM_DECLARE_VIDEO_ENCODER_MAIN("LibVaEncoder (HW)",
-                               "Mpeg4 AVC (VA/HW)",
+ADM_DECLARE_VIDEO_ENCODER_MAIN_EX("LibVaEncoder (HW)",
+                               "Intel AVC HW (VA)",
                                "Simple Libva Encoder (c) 2018 Mean",
                                 vaEncConfigure, // No configuration
                                 ADM_UI_ALL,
                                 1,0,0,
                                 vaconf_settings_param, // conf template
                                 &vaH264Settings, // conf var
-                                NULL,NULL
+                                NULL,NULL ,       // setProfile,getProfile)
+                                ADM_libvaEncoder_probe                                  
 );
 /**
  * 
@@ -59,6 +68,6 @@ bool vaEncConfigure(void)
     diaElemUInteger  bitrate(&(vaH264Settings.BitrateKbps),QT_TRANSLATE_NOOP("vaH264","_Bitrate(kbps)"),1,100*1000);
 
     diaElem *elems[2]={&bitrate,&period};    
-    return diaFactoryRun(QT_TRANSLATE_NOOP("jpeg","vaH264 Configuration"),2 ,elems);
+    return diaFactoryRun(QT_TRANSLATE_NOOP("vaEncH264","vaH264 Configuration"),2 ,elems);
 }
 // EOF

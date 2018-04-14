@@ -16,7 +16,7 @@ SET(AVIDEMUX_VERSION 2.7)                 # important !
 SET(AVIDEMUX_EXTERNAL_BUILD True)         # important !
 CMAKE_MINIMUM_REQUIRED(VERSION 3.0.0 FATAL_ERROR)
 # Needed for Clang, does not hurt others (?)
-ADD_DEFINITIONS(-std=c++11)
+#ADD_DEFINITIONS(-std=c++11)
 ######################################################
 # Try to locate & setup avidemux development files
 ######################################################

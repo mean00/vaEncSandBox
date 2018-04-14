@@ -53,6 +53,7 @@
 #include "ADM_coreLibVA_buffer.h"
 #include "vaDefines.h"
 #include "ADM_libVaEncodingContext.h"
+#include "ADM_libVaEncodingContextH264.h"
 
 /**
         \fn ADM_libvaEncoder
@@ -60,11 +61,7 @@
 ADM_libvaEncoder::ADM_libvaEncoder(ADM_coreVideoFilter *src,bool globalHeader) : ADM_coreVideoEncoder(src)
 {
     ADM_info("[LibVAEncoder] Creating.\n");
-    int w,h;
-    FilterInfo *info=src->getInfo();
-    w=info->width;
-    h=info->height;
-    image=new ADMImageDefault(w,h);
+    image=new ADMImageDefault(getWidth(),getHeight());
     vaContext=NULL;
     extraDataSize=0;
     extraData=NULL;
@@ -76,16 +73,29 @@ ADM_libvaEncoder::ADM_libvaEncoder(ADM_coreVideoFilter *src,bool globalHeader) :
 bool         ADM_libvaEncoder::setup(void)
 {
     ADM_info("[LibVAEncoder] Setting up.\n");
-    int w,h;
-    FilterInfo *info=source->getInfo();
-    w=info->width;
-    h=info->height;
+    int w=getWidth(),h=getHeight();
     std::vector<ADM_vaSurface *>xNone;
+#if 0
     vaContext= ADM_vaEncodingContext::allocate(0,w,h,getFrameIncrement(),xNone);
-    if(!vaContext) return false;
+    if(!vaContext) 
+        return false;
+#else
+     // Allocate a new one
+    ADM_vaEncodingContextH264 *ctx=new ADM_vaEncodingContextH264;
+    if(!ctx->setup(w,   h, getFrameIncrement(), xNone))
+    {
+        delete ctx;
+        ctx=NULL;        
+        return false;
+    }
+    vaContext=ctx;
+#endif
+    
     vaContext->generateExtraData(&(this->extraDataSize),&(this->extraData));
     return true;
 }
+
+ 
 /** 
     \fn ~ADM_libvaEncoder
 */
