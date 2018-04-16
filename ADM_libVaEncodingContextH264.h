@@ -59,28 +59,16 @@
  * 
  */
 #define VA_ENC_NB_SURFACE 16
-#include "ADM_libVaEncodingContext.h"
+#include "ADM_coreLibVA_encodingContext.h"
 #include "ADM_coreLibVA_bitstream.h"
 #include "vaDefines.h"
 #include "vaenc_settings.h"
+#include "ADM_coreLibVA_h264Encoding.h"
+#include "vaenc_settings.h"
 extern vaconf_settings vaH264Settings;
 
-#define VA_BITRATE (vaH264Settings.BitrateKbps*1000)
-/**
- */
-//-- Global configuration --
-namespace ADM_VA_Global
-{
-  
-  extern VAProfile          h264_profile ;
-  extern int                ip_period;
-  extern vaSetAttributes    newAttributes;
-  extern int                h264_packedheader ; /* support pack header? */
-  extern int                h264_maxref_p0 ;
-  extern int                h264_maxref_p1 ;
-};
-using namespace ADM_VA_Global;
 
+#define VA_BITRATE (vaH264Settings.BitrateKbps*1000)
 
 /**
  * 
@@ -114,7 +102,7 @@ protected:
           unsigned int Log2MaxPicOrderCntLsb;
 
 
-
+          int h264_packedheader; // FIXME
           int frame_width;
           int frame_height;
           int frame_width_mbaligned;
@@ -171,6 +159,9 @@ protected:
         //
         void fillSeqParam();
         void fillPPS(int frameNumber, vaFrameType frameType);
+        
+        
+        const ADM_VA_GlobalH264  *h264;
         
 };
 // EOF 

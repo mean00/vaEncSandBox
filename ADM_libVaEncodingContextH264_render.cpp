@@ -389,7 +389,7 @@ bool ADM_vaEncodingContextH264::render_slice(int frameNumber,vaFrameType frameTy
         case FRAME_P:    
         {
             slice_param.slice_type=SLICE_TYPE_P;
-            int refpiclist0_max = h264_maxref_p0;
+            int refpiclist0_max = h264->h264_maxref_p0;
             memcpy(slice_param.RefPicList0, RefPicList0_P, refpiclist0_max * sizeof (VAPictureH264));
             for (i = refpiclist0_max; i < 32; i++)
             {
@@ -401,8 +401,8 @@ bool ADM_vaEncodingContextH264::render_slice(int frameNumber,vaFrameType frameTy
         case FRAME_B:
         {
             slice_param.slice_type=SLICE_TYPE_B;
-            int refpiclist0_max = h264_maxref_p0;
-            int refpiclist1_max = h264_maxref_p1;
+            int refpiclist0_max = h264->h264_maxref_p0;
+            int refpiclist1_max = h264->h264_maxref_p1;
 
             memcpy(slice_param.RefPicList0, RefPicList0_B, refpiclist0_max * sizeof (VAPictureH264));
             for (i = refpiclist0_max; i < 32; i++)

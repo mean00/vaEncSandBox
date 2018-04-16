@@ -55,6 +55,8 @@
 #include "ADM_coreLibVA_buffer.h"
 #include "ADM_libVaEncodingContextH264.h"
 
+#include "vaenc_settings.h"
+extern vaconf_settings vaH264Settings;
 /**
  * 
  * @param bs
@@ -64,7 +66,7 @@ void ADM_vaEncodingContextH264::sps_rbsp(vaBitstream *bs)
     int profile_idc = PROFILE_IDC_BASELINE;
     int constraint_set_flag=0;    
     
-    switch(h264_profile)
+    switch(h264->profile)
     {
     case VAProfileH264High:
         profile_idc = PROFILE_IDC_HIGH;

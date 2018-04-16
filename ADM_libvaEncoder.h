@@ -18,7 +18,7 @@
 #pragma once
 #include "ADM_coreVideoEncoder.h"
 #include "ADM_coreLibVA/ADM_coreLibVA.h"
-#include "ADM_libVaEncodingContext.h"
+#include "ADM_coreLibVA_encodingContext.h"
 
 /**
         \class ADM_libvaEncoder

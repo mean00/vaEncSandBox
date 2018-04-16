@@ -19,7 +19,7 @@
 #include "ADM_libvaEncoder.h"
 #include "ADM_coreVideoEncoderInternal.h"
 #include "DIA_factory.h"
-
+#include "ADM_coreLibVA_h264Encoding.h"
 
 #include "vaenc_settings.h"
 extern "C"
@@ -43,6 +43,12 @@ void resetConfigurationData()
  */
 static bool         ADM_libvaEncoder_probe()
 {
+    VAProfile profile=vaGetH264EncoderProfile()->profile;
+    if(profile==VAProfileNone)
+    {
+        ADM_error("No H264 encoding support\n");
+        return false;
+    }    
     return true;
 } 
 ADM_DECLARE_VIDEO_ENCODER_PREAMBLE(ADM_libvaEncoder);

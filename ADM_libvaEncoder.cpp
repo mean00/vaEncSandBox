@@ -52,7 +52,7 @@
 #include "va/va_enc_h264.h"
 #include "ADM_coreLibVA_buffer.h"
 #include "vaDefines.h"
-#include "ADM_libVaEncodingContext.h"
+#include "ADM_coreLibVA_encodingContext.h"
 #include "ADM_libVaEncodingContextH264.h"
 
 /**

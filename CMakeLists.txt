@@ -79,7 +79,7 @@ include(admConfigSummary)
 include(admCheckLibVA)
 checkLibVA()
 include_directories(${ADM_HEADER_DIR}/ADM_coreLibVA)        
-include_directories(${ADM_HEADER_DIR}/ADM_coreLibVAEnc/include/)
+include_directories(${ADM_HEADER_DIR}/ADM_coreLibVAEnc/)
 ADD_VIDEO_ENCODER(ADM_ve_libva  
                 libvaencPlugin.cpp 
                 ADM_libVaEncodingContextH264_misc.cpp
