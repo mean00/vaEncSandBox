@@ -65,6 +65,7 @@ ADM_libvaEncoder::ADM_libvaEncoder(ADM_coreVideoFilter *src,bool globalHeader) :
     vaContext=NULL;
     extraDataSize=0;
     extraData=NULL;
+    this->globalHeader=globalHeader;
 }
 /**
  * 
@@ -81,7 +82,14 @@ bool         ADM_libvaEncoder::setup(void)
         return false;
 #else
      // Allocate a new one
-    ADM_vaEncodingContextH264 *ctx=new ADM_vaEncodingContextH264;
+    ADM_vaEncodingContextH264Base *ctx;
+    if(globalHeader)
+    {
+        ctx=new ADM_vaEncodingContextH264Base;
+    }else
+    {
+        ctx=new ADM_vaEncodingContextH264AnnexB;
+    }
     if(!ctx->setup(w,   h, getFrameIncrement(), xNone))
     {
         delete ctx;

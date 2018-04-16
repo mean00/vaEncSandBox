@@ -41,6 +41,7 @@ virtual        bool         getExtraData(uint32_t *l,uint8_t **d);
 protected:
                 int         extraDataSize;
                 uint8_t     *extraData;
+                bool        globalHeader;
 
 
 

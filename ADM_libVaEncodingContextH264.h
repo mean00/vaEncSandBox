@@ -52,9 +52,6 @@
  *                                                                         *
  ***************************************************************************/
 #pragma once
-
-#define ADM_VA_USE_MP4_FORMAT  // i.e. TS/h264 else MP4/AVC1
-
 /**
  * 
  */
@@ -71,16 +68,17 @@ extern vaconf_settings vaH264Settings;
 #define VA_BITRATE (vaH264Settings.BitrateKbps*1000)
 
 /**
- * 
+ * \class ADM_vaEncodingContextH264Base
+ * \brief This one is AVC format
  */
-class ADM_vaEncodingContextH264 : public ADM_vaEncodingContext
+class ADM_vaEncodingContextH264Base : public ADM_vaEncodingContext
 {
 public:
-                    ADM_vaEncodingContextH264()   ;             
-                    ~ADM_vaEncodingContextH264();
-            bool    setup( int width, int height, int frameInc, std::vector<ADM_vaSurface *>knownSurfaces);
-    virtual bool    encode(ADMImage *in, ADMBitstream *out);
-    virtual bool    generateExtraData(int *size, uint8_t **data);
+                    ADM_vaEncodingContextH264Base()   ;             
+virtual             ~ADM_vaEncodingContextH264Base();
+virtual            bool    setup( int width, int height, int frameInc, std::vector<ADM_vaSurface *>knownSurfaces);
+virtual            bool    encode(ADMImage *in, ADMBitstream *out);
+virtual            bool    generateExtraData(int *size, uint8_t **data);
     
 protected:    
 //-- Per instance configuration --
@@ -126,6 +124,48 @@ protected:
          void sps_rbsp(vaBitstream *bs);
          void pps_rbsp(vaBitstream *bs);
          
+      
+               
+        void encoding2display_order(    uint64_t encoding_order, int intra_idr_period,  vaFrameType *frame_type);
+        bool update_ReferenceFrames(vaFrameType frameType);
+        bool update_RefPicList(vaFrameType frameType);        
+        int  calc_poc(int pic_order_cnt_lsb,vaFrameType frameType);
+        // MP4
+        bool render_sequence(void);
+        bool render_picture(int frameNumber,vaFrameType frameType);
+        
+        void slice_header(vaBitstream *bs);
+        
+        
+        bool render_hrd(void);
+
+        //
+        void fillSeqParam();
+        void fillPPS(int frameNumber, vaFrameType frameType);
+virtual bool render_slice(int frameNumber,vaFrameType frameType);   
+        
+        const ADM_VA_GlobalH264  *h264;
+        
+};
+
+
+/**
+ * \class ADM_vaEncodingContextH264AnnexB
+ * \brief This one is AnnexB format (mpeg TS)
+ */
+
+class ADM_vaEncodingContextH264AnnexB: public ADM_vaEncodingContextH264Base
+{
+public:
+                    ADM_vaEncodingContextH264AnnexB()   ;             
+    virtual         ~ADM_vaEncodingContextH264AnnexB();
+    virtual bool    setup( int width, int height, int frameInc, std::vector<ADM_vaSurface *>knownSurfaces);
+    virtual bool    encode(ADMImage *in, ADMBitstream *out);
+    virtual bool    generateExtraData(int *size, uint8_t **data);
+    
+protected:    
+
+         
          bool build_packed_pic_buffer(vaBitstream *bs);
          bool build_packed_seq_buffer(vaBitstream *bs);    
          bool build_packed_sei_buffer_timing(vaBitstream *bs,
@@ -137,15 +177,7 @@ protected:
 				unsigned int dpb_output_length,
 				unsigned int dpb_output_delay);
                
-        void encoding2display_order(    uint64_t encoding_order, int intra_idr_period,  vaFrameType *frame_type);
-        bool update_ReferenceFrames(vaFrameType frameType);
-        bool update_RefPicList(vaFrameType frameType);        
-        int  calc_poc(int pic_order_cnt_lsb,vaFrameType frameType);
-        // MP4
-        bool render_sequence(void);
-        bool render_picture(int frameNumber,vaFrameType frameType);
-        bool render_slice(int frameNumber,vaFrameType frameType);   
-        void slice_header(vaBitstream *bs);
+      
         
         // Annex B
         bool render_packedsequence(void);
@@ -155,14 +187,10 @@ protected:
         bool build_packed_slice_buffer(vaBitstream *bs);
         
         bool render_hrd(void);
-
-        //
-        void fillSeqParam();
-        void fillPPS(int frameNumber, vaFrameType frameType);
-        
-        
-        const ADM_VA_GlobalH264  *h264;
+        bool render_slice(int frameNumber,vaFrameType frameType);   
+      
         
 };
+
 // EOF 
  

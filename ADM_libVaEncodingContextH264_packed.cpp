@@ -48,12 +48,20 @@
  *   (at your option) any later version.                                   *
  *                                                                         *
  ***************************************************************************/
-
 #include "ADM_default.h"
+#include "ADM_bitstream.h"
+#include "ADM_coreVideoEncoder.h"
+#include "ADM_videoInfoExtractor.h"
+
+
 #include "va/va.h"
 #include "va/va_enc_h264.h"
 #include "ADM_coreLibVA_buffer.h"
 #include "ADM_libVaEncodingContextH264.h"
+
+#define aprintf printf
+
+
 
 
 /**
@@ -61,7 +69,7 @@
  * @param header_buffer
  * @return 
  */
-bool ADM_vaEncodingContextH264::build_packed_pic_buffer(vaBitstream *bs)
+bool ADM_vaEncodingContextH264AnnexB::build_packed_pic_buffer(vaBitstream *bs)
 {
     bs->startCodePrefix();
     bs->nalHeader(NAL_REF_IDC_HIGH, NAL_PPS);
@@ -75,7 +83,7 @@ bool ADM_vaEncodingContextH264::build_packed_pic_buffer(vaBitstream *bs)
  * @param header_buffer
  * @return 
  */
-bool ADM_vaEncodingContextH264::build_packed_seq_buffer(vaBitstream *bs)
+bool ADM_vaEncodingContextH264AnnexB::build_packed_seq_buffer(vaBitstream *bs)
 {
     bs->startCodePrefix();
     bs->nalHeader(NAL_REF_IDC_HIGH, NAL_SPS);
@@ -96,7 +104,7 @@ bool ADM_vaEncodingContextH264::build_packed_seq_buffer(vaBitstream *bs)
  * @param sei_buffer
  * @return 
  */
-bool ADM_vaEncodingContextH264::build_packed_sei_buffer_timing(vaBitstream *bs,
+bool ADM_vaEncodingContextH264AnnexB::build_packed_sei_buffer_timing(vaBitstream *bs,
                                                                unsigned int init_cpb_removal_length,
                                                                unsigned int init_cpb_removal_delay,
                                                                unsigned int init_cpb_removal_delay_offset,
@@ -165,7 +173,7 @@ bool ADM_vaEncodingContextH264::build_packed_sei_buffer_timing(vaBitstream *bs,
  * @param header_buffer
  * @return 
  */
-bool ADM_vaEncodingContextH264::build_packed_slice_buffer(vaBitstream *bs)
+bool ADM_vaEncodingContextH264AnnexB::build_packed_slice_buffer(vaBitstream *bs)
 {
     int is_idr = !!pic_param.pic_fields.bits.idr_pic_flag;
     int is_ref = !!pic_param.pic_fields.bits.reference_pic_flag;
@@ -192,7 +200,7 @@ bool ADM_vaEncodingContextH264::build_packed_slice_buffer(vaBitstream *bs)
 /**
  * 
  */
-bool ADM_vaEncodingContextH264::render_packedslice()
+bool ADM_vaEncodingContextH264AnnexB::render_packedslice()
 {
     VAEncPackedHeaderParameterBuffer packedheader_param_buffer;
     VABufferID packedslice_para_bufid, packedslice_data_bufid, render_id[2];
@@ -232,7 +240,7 @@ bool ADM_vaEncodingContextH264::render_packedslice()
 /**
  * 
  */
-bool ADM_vaEncodingContextH264::render_packedsei(int frameNumber)
+bool ADM_vaEncodingContextH264AnnexB::render_packedsei(int frameNumber)
 {
     VAEncPackedHeaderParameterBuffer packed_header_param_buffer;
     VABufferID packed_sei_header_param_buf_id, packed_sei_buf_id, render_id[2];
@@ -294,7 +302,7 @@ bool ADM_vaEncodingContextH264::render_packedsei(int frameNumber)
  * 
  * @return 
  */
-bool ADM_vaEncodingContextH264::render_packedpicture(void)
+bool ADM_vaEncodingContextH264AnnexB::render_packedpicture(void)
 {
     VAEncPackedHeaderParameterBuffer packedheader_param_buffer;
     VABufferID packedpic_para_bufid, packedpic_data_bufid, render_id[2];
@@ -336,7 +344,7 @@ bool ADM_vaEncodingContextH264::render_packedpicture(void)
  * 
  * @return 
  */
-bool ADM_vaEncodingContextH264::render_packedsequence(void)
+bool ADM_vaEncodingContextH264AnnexB::render_packedsequence(void)
 {
     VAEncPackedHeaderParameterBuffer packedheader_param_buffer;
     VABufferID packedseq_para_bufid, packedseq_data_bufid, render_id[2];
@@ -378,7 +386,7 @@ bool ADM_vaEncodingContextH264::render_packedsequence(void)
  * 
  * @return 
  */
-bool ADM_vaEncodingContextH264::render_hrd(void)
+bool ADM_vaEncodingContextH264AnnexB::render_hrd(void)
 {
     VABufferID misc_parameter_hrd_buf_id;
     VAStatus va_status;
@@ -416,4 +424,268 @@ bool ADM_vaEncodingContextH264::render_hrd(void)
 
     return true;
 }
+//--
+
+
+/**
+ * 
+ * @return 
+ */
+bool ADM_vaEncodingContextH264AnnexB::render_slice(int frameNumber,vaFrameType frameType)
+{
+    VABufferID slice_param_buf;
+    VAStatus va_status;
+    int i;
+
+    update_RefPicList(frameType);
+
+    /* one frame, one slice */
+    slice_param.macroblock_address = 0;
+    slice_param.num_macroblocks = frame_width_mbaligned * frame_height_mbaligned / (16 * 16); /* Measured by MB */
+    switch(frameType)      
+    {
+        case FRAME_IDR:
+            slice_param.slice_type =SLICE_TYPE_I;
+            if (frameNumber)  
+                slice_param.idr_pic_id++;
+            for (i = 0; i < 32; i++)
+            {
+                slice_param.RefPicList0[i].picture_id = VA_INVALID_SURFACE;
+                slice_param.RefPicList0[i].flags      = VA_PICTURE_H264_INVALID;
+                slice_param.RefPicList1[i].picture_id = VA_INVALID_SURFACE;
+                slice_param.RefPicList1[i].flags      = VA_PICTURE_H264_INVALID;
+                
+            }            
+            break;
+        case FRAME_P:    
+        {
+            slice_param.slice_type=SLICE_TYPE_P;
+            int refpiclist0_max = h264->h264_maxref_p0;
+            memcpy(slice_param.RefPicList0, RefPicList0_P, refpiclist0_max * sizeof (VAPictureH264));
+            for (i = refpiclist0_max; i < 32; i++)
+            {
+                slice_param.RefPicList0[i].picture_id = VA_INVALID_SURFACE;
+                slice_param.RefPicList0[i].flags      = VA_PICTURE_H264_INVALID;
+            }
+        }
+            break;
+        case FRAME_B:
+        {
+            slice_param.slice_type=SLICE_TYPE_B;
+            int refpiclist0_max = h264->h264_maxref_p0;
+            int refpiclist1_max = h264->h264_maxref_p1;
+
+            memcpy(slice_param.RefPicList0, RefPicList0_B, refpiclist0_max * sizeof (VAPictureH264));
+            for (i = refpiclist0_max; i < 32; i++)
+            {
+                slice_param.RefPicList0[i].picture_id = VA_INVALID_SURFACE;
+                slice_param.RefPicList0[i].flags      = VA_PICTURE_H264_INVALID;
+            }
+
+            memcpy(slice_param.RefPicList1, RefPicList1_B, refpiclist1_max * sizeof (VAPictureH264));
+            for (i = refpiclist1_max; i < 32; i++)
+            {
+                slice_param.RefPicList1[i].picture_id = VA_INVALID_SURFACE;
+                slice_param.RefPicList1[i].flags      = VA_PICTURE_H264_INVALID;
+            }
+        }
+            break;
+        default:
+            ADM_assert(0);
+            break;
+    }
+   
+    slice_param.slice_alpha_c0_offset_div2 = 0;
+    slice_param.slice_beta_offset_div2 = 0;
+    slice_param.direct_spatial_mv_pred_flag = 1;
+    slice_param.pic_order_cnt_lsb = (frameNumber - gop_start) % MaxPicOrderCntLsb;
+
+    
+    render_packedslice();
+
+    CHECK_VA_STATUS_BOOL(vaCreateBuffer(admLibVA::getDisplay(), context_id, VAEncSliceParameterBufferType,
+                                        sizeof (slice_param), 1, &slice_param, &slice_param_buf));
+    CHECK_VA_STATUS_BOOL(vaRenderPicture(admLibVA::getDisplay(), context_id, &slice_param_buf, 1));
+    return true;
+}
+
+
+
+/**
+ * 
+ * @param in
+ * @param out
+ * @return 
+ */
+
+
+bool ADM_vaEncodingContextH264AnnexB::generateExtraData(int *size, uint8_t **data)
+{
+    ADM_info("vaH264 extraData\n");
+
+    *size=0;
+    *data=NULL;    
+    ADM_info("/vaH264 extraData\n");
+    return true;
+}
+bool ADM_vaEncodingContextH264AnnexB::encode(ADMImage *in, ADMBitstream *out)
+{
+    vaFrameType current_frame_type;
+    if(!vaSurface[current_frame_encoding%SURFACE_NUM]->fromAdmImage(in))
+    {
+        ADM_warning("Failed to upload image to vaSurface\n");
+        return false;
+    }
+
+    encoding2display_order(current_frame_encoding, vaH264Settings.IntraPeriod,    &current_frame_type);
+    aprintf("Encoding order = %d,  frame type=%d\n",(int)current_frame_encoding,current_frame_type);
+    if (current_frame_type == FRAME_IDR) 
+    {
+        numShortTerm = 0;
+    }
+    int current_slot= (current_frame_encoding % SURFACE_NUM);
+
+    CHECK_VA_STATUS_BOOL(vaBeginPicture(admLibVA::getDisplay(), context_id, vaSurface[current_slot]->surface));
+    
+
+    if (current_frame_type == FRAME_IDR) 
+    {
+        render_sequence();
+        render_picture(current_frame_encoding,current_frame_type);            
+        if (h264_packedheader) 
+        {
+            render_packedsequence();
+            render_packedpicture();
+        }
+        out->flags = AVI_KEY_FRAME;
+    }
+    else 
+    {
+        out->flags = AVI_P_FRAME;
+        render_picture(current_frame_encoding,current_frame_type);
+    }
+    render_slice(current_frame_encoding,current_frame_type);
+    CHECK_VA_STATUS_BOOL( vaEndPicture(admLibVA::getDisplay(),context_id));
+    //--    
+    
+    CHECK_VA_STATUS_BOOL( vaSyncSurface(admLibVA::getDisplay(), vaSurface[current_frame_encoding % SURFACE_NUM]->surface));
+    
+    out->len=vaEncodingBuffers[current_frame_encoding % SURFACE_NUM]->read(out->data, out->bufferSize);
+    ADM_assert(out->len>=0);
+
+    /* reload a new frame data */
+
+    update_ReferenceFrames(current_frame_type);        
+    current_frame_encoding++;
+    out->pts=in->Pts;
+    out->dts=out->pts;
+    return true;
+}
+
+ADM_vaEncodingContextH264AnnexB::ADM_vaEncodingContextH264AnnexB()
+{
+    
+}
+ADM_vaEncodingContextH264AnnexB::~ADM_vaEncodingContextH264AnnexB()
+{
+    
+}
+
+/**
+ * 
+ * @param width
+ * @param height
+ * @param knownSurfaces
+ * @return 
+ */
+bool ADM_vaEncodingContextH264AnnexB::setup( int width, int height, int frameInc,std::vector<ADM_vaSurface *>knownSurfaces)
+{
+        ADM_info("vaH264 setup\n");
+        
+        h264=vaGetH264EncoderProfile();
+        if(h264->profile==VAProfileNone)
+        {
+            ADM_error("No H264 encoding support\n");
+            return false;
+        }
+        
+        
+        VAStatus va_status;
+        frame_width=width;
+        frame_height=height;
+        frame_width_mbaligned=(width+15)&~15;
+        frame_height_mbaligned=(height+15)&~15;
+        int  i;
+        usSecondsToFrac(frameInc,&frameNum,&frameDen);        
+        ADM_info("xFps : %d : %d\n",frameNum,frameDen);
+        // marshall new config...
+        
+        // copy common part
+        int nAttrib=h264->newAttributes.count();
+        VAConfigAttrib *ttrib=new VAConfigAttrib[nAttrib+1];
+        const VAConfigAttrib *old=h264->newAttributes.getPointer();
+        memcpy(ttrib,old,nAttrib*sizeof(VAConfigAttrib));
+        
+        // add rate control, it is per instance
+        ttrib[nAttrib].type=VAConfigAttribRateControl;
+        ttrib[nAttrib].value=VA_RC_CBR;
+                
+        
+        CHECK_VA_STATUS_BOOL( vaCreateConfig(admLibVA::getDisplay(), h264->profile, VAEntrypointEncSlice, ttrib, nAttrib+1, &config_id));
+        
+
+        int n=knownSurfaces.size();                    
+        VASurfaceID *tmp_surfaceId = new VASurfaceID[n];
+        for(int i=0;i<n;i++)
+        {
+            tmp_surfaceId[i]=knownSurfaces[i]->surface;
+        }
+
+        /* Create a context for this encode pipe */
+        CHECK_VA_STATUS_BOOL( vaCreateContext(admLibVA::getDisplay(), config_id,
+                                    frame_width_mbaligned, frame_height_mbaligned,
+                                    VA_PROGRESSIVE,
+                                    tmp_surfaceId, n,
+                                    &context_id));
+        
+        delete [] ttrib;
+        delete [] tmp_surfaceId;
+        tmp_surfaceId=NULL;
+
+        int codedbuf_size = (frame_width_mbaligned * frame_height_mbaligned * 400) / (16*16);
+
+        for (i = 0; i < SURFACE_NUM; i++) 
+        {
+            vaEncodingBuffers[i]= ADM_vaEncodingBuffers::allocate(context_id,codedbuf_size);
+            if(!vaEncodingBuffers[i])
+            {
+                ADM_warning("Cannot create encoding buffer %d\n",i);
+                return false;;
+            }
+        }
+
+        // Allocate VAImage
+
+        for(int i=0;i<VA_ENC_NB_SURFACE;i++)
+        {
+            vaSurface[i]=ADM_vaSurface::allocateWithSurface(width,height);
+            if(!vaSurface[i]) 
+            {
+                ADM_warning("Cannot allocate surface\n");
+                return false;
+            }
+
+            vaRefSurface[i]=ADM_vaSurface::allocateWithSurface(width,height);
+            if(!vaRefSurface[i]) 
+            {
+                ADM_warning("Cannot allocate ref surface\n");
+                return false;
+            }
+        }
+        tmpBuffer=new uint8_t[codedbuf_size];
+        render_sequence();
+        ADM_info("/vaH264 setup\n");
+        return true;                
+}
+
 // EOF

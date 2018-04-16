@@ -61,7 +61,7 @@ extern vaconf_settings vaH264Settings;
  * 
  * @param bs
  */
-void ADM_vaEncodingContextH264::sps_rbsp(vaBitstream *bs)
+void ADM_vaEncodingContextH264Base::sps_rbsp(vaBitstream *bs)
 {
     int profile_idc = PROFILE_IDC_BASELINE;
     int constraint_set_flag=0;    
@@ -180,7 +180,7 @@ void ADM_vaEncodingContextH264::sps_rbsp(vaBitstream *bs)
  * 
  * @param bs
  */
-void ADM_vaEncodingContextH264::pps_rbsp(vaBitstream *bs)
+void ADM_vaEncodingContextH264Base::pps_rbsp(vaBitstream *bs)
 {
     bs->put_ue(pic_param.pic_parameter_set_id); /* pic_parameter_set_id */
     bs->put_ue(pic_param.seq_parameter_set_id); /* seq_parameter_set_id */
@@ -217,7 +217,7 @@ void ADM_vaEncodingContextH264::pps_rbsp(vaBitstream *bs)
  * 
  * @param bs
  */
-void ADM_vaEncodingContextH264::slice_header(vaBitstream *bs)
+void ADM_vaEncodingContextH264Base::slice_header(vaBitstream *bs)
 {
     int first_mb_in_slice = slice_param.macroblock_address;
 
@@ -334,7 +334,7 @@ void ADM_vaEncodingContextH264::slice_header(vaBitstream *bs)
  * displaying_order: displaying order
  * frame_type: frame type 
  */
-void ADM_vaEncodingContextH264::encoding2display_order(uint64_t encoding_order, int intra_idr_period, vaFrameType *frame_type)
+void ADM_vaEncodingContextH264Base::encoding2display_order(uint64_t encoding_order, int intra_idr_period, vaFrameType *frame_type)
 {
     // simple use case, no delay encoding, only I(DR) PPPPPP
     if (!encoding_order)

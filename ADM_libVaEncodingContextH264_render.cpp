@@ -50,6 +50,7 @@
  ***************************************************************************/
 
 #include "ADM_default.h"
+#include "ADM_bitstream.h"
 #include "va/va.h"
 #include "va/va_enc_h264.h"
 #include "ADM_coreLibVA_buffer.h"
@@ -149,7 +150,7 @@ static void sort_two(VAPictureH264 ref[], int left, int right, unsigned int key,
  * 
  * @return 
  */
-bool ADM_vaEncodingContextH264::update_ReferenceFrames(vaFrameType frameType)
+bool ADM_vaEncodingContextH264Base::update_ReferenceFrames(vaFrameType frameType)
 {
     if (frameType == FRAME_B)     
         return true;
@@ -168,7 +169,7 @@ bool ADM_vaEncodingContextH264::update_ReferenceFrames(vaFrameType frameType)
  * 
  * @return 
  */
-bool ADM_vaEncodingContextH264::update_RefPicList(vaFrameType frameType)
+bool ADM_vaEncodingContextH264Base::update_RefPicList(vaFrameType frameType)
 {    
     unsigned int current_poc = CurrentCurrPic.TopFieldOrderCnt;
     switch(frameType)
@@ -190,7 +191,7 @@ bool ADM_vaEncodingContextH264::update_RefPicList(vaFrameType frameType)
     return true;
 }
 
-void ADM_vaEncodingContextH264::fillSeqParam()
+void ADM_vaEncodingContextH264Base::fillSeqParam()
 {
     seq_param.level_idc = 41 /*SH_LEVEL_3*/;
     seq_param.picture_width_in_mbs = frame_width_mbaligned / 16;
@@ -227,7 +228,7 @@ void ADM_vaEncodingContextH264::fillSeqParam()
  * 
  * @return 
  */
-bool ADM_vaEncodingContextH264::render_sequence(void)
+bool ADM_vaEncodingContextH264Base::render_sequence(void)
 {
     VABufferID seq_param_buf, rc_param_buf, misc_param_tmpbuf, render_id[2];
     VAStatus va_status;
@@ -268,7 +269,7 @@ bool ADM_vaEncodingContextH264::render_sequence(void)
  * @param pic_order_cnt_lsb
  * @return 
  */
-int ADM_vaEncodingContextH264::calc_poc(int pic_order_cnt_lsb,vaFrameType frameType)
+int ADM_vaEncodingContextH264Base::calc_poc(int pic_order_cnt_lsb,vaFrameType frameType)
 {
     static int PicOrderCntMsb_ref = 0, pic_order_cnt_lsb_ref = 0;
     int prevPicOrderCntMsb, prevPicOrderCntLsb;
@@ -304,7 +305,7 @@ int ADM_vaEncodingContextH264::calc_poc(int pic_order_cnt_lsb,vaFrameType frameT
 /**
  * 
  */
-void ADM_vaEncodingContextH264::fillPPS(int frameNumber, vaFrameType frameType)
+void ADM_vaEncodingContextH264Base::fillPPS(int frameNumber, vaFrameType frameType)
 {
     int current_slot = (frameNumber % SURFACE_NUM);
     pic_param.CurrPic.picture_id = vaRefSurface[current_slot]->surface;
@@ -340,7 +341,7 @@ void ADM_vaEncodingContextH264::fillPPS(int frameNumber, vaFrameType frameType)
  * 
  * @return 
  */
-bool ADM_vaEncodingContextH264::render_picture(int frameNumber,vaFrameType frameType)
+bool ADM_vaEncodingContextH264Base::render_picture(int frameNumber,vaFrameType frameType)
 {
     VABufferID pic_param_buf;
     VAStatus va_status;
@@ -356,11 +357,13 @@ bool ADM_vaEncodingContextH264::render_picture(int frameNumber,vaFrameType frame
 
 
 
+//--
+
 /**
  * 
  * @return 
  */
-bool ADM_vaEncodingContextH264::render_slice(int frameNumber,vaFrameType frameType)
+bool ADM_vaEncodingContextH264Base::render_slice(int frameNumber,vaFrameType frameType)
 {
     VABufferID slice_param_buf;
     VAStatus va_status;
@@ -429,8 +432,8 @@ bool ADM_vaEncodingContextH264::render_slice(int frameNumber,vaFrameType frameTy
     slice_param.direct_spatial_mv_pred_flag = 1;
     slice_param.pic_order_cnt_lsb = (frameNumber - gop_start) % MaxPicOrderCntLsb;
 
-    if (h264_packedheader & VA_ENC_PACKED_HEADER_SLICE)
-        render_packedslice();
+    
+    
 
     CHECK_VA_STATUS_BOOL(vaCreateBuffer(admLibVA::getDisplay(), context_id, VAEncSliceParameterBufferType,
                                         sizeof (slice_param), 1, &slice_param, &slice_param_buf));
