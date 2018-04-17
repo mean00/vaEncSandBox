@@ -60,7 +60,7 @@
 */
 ADM_libvaEncoder::ADM_libvaEncoder(ADM_coreVideoFilter *src,bool globalHeader) : ADM_coreVideoEncoder(src)
 {
-    ADM_info("[LibVAEncoder] Creating.\n");
+    ADM_info("[LibVAEncoder] Creating, globalHeader=%d.\n",globalHeader);
     image=new ADMImageDefault(getWidth(),getHeight());
     vaContext=NULL;
     extraDataSize=0;

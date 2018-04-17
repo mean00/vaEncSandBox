@@ -531,6 +531,7 @@ bool ADM_vaEncodingContextH264AnnexB::generateExtraData(int *size, uint8_t **dat
 bool ADM_vaEncodingContextH264AnnexB::encode(ADMImage *in, ADMBitstream *out)
 {
     vaFrameType current_frame_type;
+    aprintf("Encoding frame %d, H264 AnnexB\n",current_frame_encoding);
     if(!vaSurface[current_frame_encoding%SURFACE_NUM]->fromAdmImage(in))
     {
         ADM_warning("Failed to upload image to vaSurface\n");
@@ -552,11 +553,8 @@ bool ADM_vaEncodingContextH264AnnexB::encode(ADMImage *in, ADMBitstream *out)
     {
         render_sequence();
         render_picture(current_frame_encoding,current_frame_type);            
-        if (h264_packedheader) 
-        {
-            render_packedsequence();
-            render_packedpicture();
-        }
+        render_packedsequence();
+        render_packedpicture();
         out->flags = AVI_KEY_FRAME;
     }
     else 

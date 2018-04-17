@@ -79,7 +79,10 @@ virtual             ~ADM_vaEncodingContextH264Base();
 virtual            bool    setup( int width, int height, int frameInc, std::vector<ADM_vaSurface *>knownSurfaces);
 virtual            bool    encode(ADMImage *in, ADMBitstream *out);
 virtual            bool    generateExtraData(int *size, uint8_t **data);
-    
+virtual            int     getPackedAttributes()
+                            {
+                                    return 0;
+                            }
 protected:    
 //-- Per instance configuration --
           VAConfigID config_id;
@@ -100,7 +103,7 @@ protected:
           unsigned int Log2MaxPicOrderCntLsb;
 
 
-          int h264_packedheader; // FIXME
+          
           int frame_width;
           int frame_height;
           int frame_width_mbaligned;
@@ -188,7 +191,10 @@ protected:
         
         bool render_hrd(void);
         bool render_slice(int frameNumber,vaFrameType frameType);   
-      
+        int     getPackedAttributes()
+        {
+          return h264->packedHeaderCapabilities;
+        }
         
 };
 

@@ -67,7 +67,6 @@
 ADM_vaEncodingContextH264Base::ADM_vaEncodingContextH264Base()
 {
     ADM_info("vaH264 ctor\n");
-    h264_packedheader=0;
     context_id=VA_INVALID;
     config_id=VA_INVALID;
     
@@ -163,16 +162,24 @@ bool ADM_vaEncodingContextH264Base::setup( int width, int height, int frameInc,s
         
         // copy common part
         int nAttrib=h264->newAttributes.count();
+        int outAttrib=0;
         VAConfigAttrib *ttrib=new VAConfigAttrib[nAttrib+1];
         const VAConfigAttrib *old=h264->newAttributes.getPointer();
-        memcpy(ttrib,old,nAttrib*sizeof(VAConfigAttrib));
         
+        for(int i=0;i<nAttrib;i++)
+        {
+            ttrib[outAttrib]=old[i];
+            if(ttrib[outAttrib].type==VAConfigAttribEncPackedHeaders) // remove packed
+                ttrib[outAttrib].value=getPackedAttributes();
+            outAttrib++;
+            
+        }        
         // add rate control, it is per instance
-        ttrib[nAttrib].type=VAConfigAttribRateControl;
-        ttrib[nAttrib].value=VA_RC_CBR;
-                
+        ttrib[outAttrib].type=VAConfigAttribRateControl;
+        ttrib[outAttrib].value=VA_RC_CBR;
+        outAttrib++;
         
-        CHECK_VA_STATUS_BOOL( vaCreateConfig(admLibVA::getDisplay(), h264->profile, VAEntrypointEncSlice, ttrib, nAttrib+1, &config_id));
+        CHECK_VA_STATUS_BOOL( vaCreateConfig(admLibVA::getDisplay(), h264->profile, VAEntrypointEncSlice, ttrib, outAttrib, &config_id));
         
 
         int n=knownSurfaces.size();                    
@@ -286,6 +293,7 @@ bool ADM_vaEncodingContextH264Base::generateExtraData(int *size, uint8_t **data)
  */
 bool ADM_vaEncodingContextH264Base::encode(ADMImage *in, ADMBitstream *out)
 {
+    aprintf("Encoding frame %d, H264 AVC\n",current_frame_encoding);
     vaFrameType current_frame_type;
     if(!vaSurface[current_frame_encoding%SURFACE_NUM]->fromAdmImage(in))
     {
