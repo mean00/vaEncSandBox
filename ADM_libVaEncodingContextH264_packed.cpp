@@ -59,10 +59,6 @@
 #include "ADM_coreLibVA_buffer.h"
 #include "ADM_libVaEncodingContextH264.h"
 
-#define aprintf printf
-
-
-
 
 /**
  * 

@@ -62,6 +62,7 @@
 #include "vaenc_settings.h"
 #include "ADM_coreLibVA_h264Encoding.h"
 #include "vaenc_settings.h"
+#include "ADM_libvaEncoder_debug.h"
 extern vaconf_settings vaH264Settings;
 
 

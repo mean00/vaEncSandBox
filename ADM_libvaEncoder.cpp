@@ -130,7 +130,7 @@ ADM_libvaEncoder::~ADM_libvaEncoder()
 bool         ADM_libvaEncoder::encode (ADMBitstream * out)
 {
     uint32_t fn;
-    ADM_info("[LibVAEncoder] Encoding.\n");
+    aprintf("[LibVAEncoder] Encoding.\n");
     
     if(source->getNextFrame(&fn,image)==false)
     {
@@ -138,7 +138,7 @@ bool         ADM_libvaEncoder::encode (ADMBitstream * out)
         return false;
     }
     bool r=vaContext->encode(image,out);
-    ADM_info("Encoding frame %d, result = %d, size=%d\n",fn,r,out->len);
+    aprintf("Encoding frame %d, result = %d, size=%d\n",fn,r,out->len);
     return r;
 }
 

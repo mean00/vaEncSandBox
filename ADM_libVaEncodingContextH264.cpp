@@ -59,14 +59,13 @@
 #include "ADM_coreLibVA_buffer.h"
 #include "ADM_libVaEncodingContextH264.h"
 
-#define aprintf printf
 
 /**
  * 
  */
 ADM_vaEncodingContextH264Base::ADM_vaEncodingContextH264Base()
 {
-    ADM_info("vaH264 ctor\n");
+    aprintf("vaH264 ctor\n");
     context_id=VA_INVALID;
     config_id=VA_INVALID;
     
@@ -96,7 +95,7 @@ ADM_vaEncodingContextH264Base::ADM_vaEncodingContextH264Base()
     initial_qp = 15;
     minimal_qp = 0;
     rc_mode = VA_RC_CBR; //VA_RC_CQP;
-    ADM_info("/vaH264 ctor\n");
+    aprintf("/vaH264 ctor\n");
     tmpBuffer=NULL;
 }
 /**
@@ -104,7 +103,7 @@ ADM_vaEncodingContextH264Base::ADM_vaEncodingContextH264Base()
  */
 ADM_vaEncodingContextH264Base::~ADM_vaEncodingContextH264Base()
 {
-    ADM_info("vaH264 dtor\n");
+    aprintf("vaH264 dtor\n");
     if(context_id!=VA_INVALID)
     {
         vaDestroyContext(admLibVA::getDisplay(),context_id);
@@ -129,7 +128,7 @@ ADM_vaEncodingContextH264Base::~ADM_vaEncodingContextH264Base()
         }
 
     }
-    ADM_info("/vaH264 dtor\n");
+    aprintf("/vaH264 dtor\n");
 }
 /**
  * 
@@ -241,7 +240,7 @@ bool ADM_vaEncodingContextH264Base::setup( int width, int height, int frameInc,s
 
 bool ADM_vaEncodingContextH264Base::generateExtraData(int *size, uint8_t **data)
 {
-    ADM_info("vaH264 extraData\n");
+    aprintf("vaH264 extraData\n");
     vaBitstream sps,pps;
     
     fillSeqParam();
@@ -282,7 +281,7 @@ bool ADM_vaEncodingContextH264Base::generateExtraData(int *size, uint8_t **data)
     
     mixDump(*data,*size);
     
-    ADM_info("/vaH264 extraData\n");
+    aprintf("/vaH264 extraData\n");
     return true;
 }
 /**
